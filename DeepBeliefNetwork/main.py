@@ -72,7 +72,7 @@ def main(path):
         gpu = tf.config.list_physical_devices('GPU')
         if gpu:
             proc = '/GPU:0'
-            
+
         else :
             proc = '/CPU:0'
             
@@ -83,9 +83,14 @@ def main(path):
             end_time = time.time()
             print("Total time consumed : {} seconds ".format(end_time - start_time))
 
-        os.mkdir('./models')
         model_name = 'regressor{}'.format(time.time())
-        regressor.save('./models/{}'.format(model_name))
+
+        if 'models' in os.listdir('./'):
+            regressor.save('./models/{}'.format(model_name))
+
+        else :
+            os.mkdir('./models')
+            regressor.fit('./models/{}'.format(model_name))
         print('Model is Saved ----- > {}'.format(model_name))
 
         train_preds = regressor.predict(X_train)
@@ -101,6 +106,7 @@ def main(path):
 
     except Exception as e:
         print(e)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser('DBN GPU Training')
