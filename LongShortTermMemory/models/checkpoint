@@ -1,0 +1,2 @@
+model_checkpoint_path: "lstm240.weights"
+all_model_checkpoint_paths: "lstm240.weights"
