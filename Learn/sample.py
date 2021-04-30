@@ -4,10 +4,11 @@ import datetime
 import pandas as pd
 import numpy as np
 import time
+from pandastable import Table , TableModel
 import warnings
 warnings.simplefilter('ignore')
 
-bg_color = '#ff952b'
+bg_color = None
 # csv_filepath = filedialog.askopenfilename(
 #     # initialdir="C:/Users/MainFrame/Desktop/", 
 #     title="Open Text file", 
@@ -30,7 +31,7 @@ del(pdread)
 df= df[[3,6,7,8]]
 df.columns = ['Script', 'Expiry' , 'Price' , 'Type']
 df['Price'] = df['Price'].apply(lambda x: (x/100)).astype('int')
-dChange =int(datetime.datetime(1980, 1,1,0,0).strftime('%s'))
+dChange =int(datetime.datetime(1980, 1,1,0,0).timestamp())
 df['Expiry'] = df['Expiry'].apply(lambda x: datetime.datetime.fromtimestamp(dChange + x).strftime('%d-%m-%Y')).astype('datetime64')
 df.reset_index(drop=True ,inplace=True)
 
@@ -47,6 +48,7 @@ ratio_list = ['121' ,'143']
 
 def popup(msg):
 	pop = Tk()
+	pop.wm_title('Info')
 	def leave():
 		pop.destroy()
 	label = Label(pop , text=msg , background=bg_color)
@@ -55,6 +57,118 @@ def popup(msg):
 	btn.pack(side='bottom' , padx=3 , pady=3)
 	pop['bg'] = bg_color
 	pop.mainloop()
+
+def use_tkinter_after(gui_element, wait_time, call_this):
+    # the following line needs replacement depending on the GUI
+    # it calls 'call_this' after a period of time 'wait_time' in ms
+    # for Tkinter
+	try:
+		gui_element.after(wait_time, call_this)
+	except Exception as e:
+		pass
+
+def use_any_timer(gui_element, wait_time, call_this):
+	if hasattr(gui_element, 'after'):
+		try:
+			use_tkinter_after(gui_element, wait_time, call_this)
+
+		except Exception as e:
+			pass
+	else:
+		raise TypeError("Can not automatically detect which GUI this is.")
+
+def _loop_in_the_gui(gui_element, generator, _start_in_gui):
+    try:
+        # generator yields the time to wait
+        wait_time = next(generator)
+    except StopIteration:
+        pass
+    else:
+        if wait_time is None:
+            # yield
+            wait_time = 0
+        else:
+            # yield seconds
+            wait_time = int(wait_time * 1000) # Tkinter works with milli seconds
+        call_this_again = lambda: _loop_in_the_gui(gui_element, generator,
+                                                   _start_in_gui)
+        _start_in_gui(gui_element, wait_time, call_this_again)
+
+class guiLoop(object):
+    
+    def __init__(self, function, start_in_gui = use_any_timer):
+        """make a function to a guiLoop function
+        The resulting function needs a gui element as first argument."""
+        self.function = function
+        self.__doc__ = function.__doc__
+        self.__name__ = function.__name__
+        self.start_in_gui = start_in_gui
+
+    def __call__(self, gui_element, *args, **kw):
+        generator = self.function(*args, **kw)
+        _loop_in_the_gui(gui_element, generator, self.start_in_gui)
+        return generator
+
+    def __get__(self, gui_element, cls):
+        if gui_element is None:
+            return self
+        return lambda *args, **kw: self(gui_element, gui_element, *args, **kw)
+        
+
+def tkLoop(function):
+    """a guiLoop for tkinter"""
+    return guiLoop(function, use_tkinter_after)
+
+class StopLoopException(Exception):
+    """This is raised if the loop shall stop"""
+    pass
+
+def stopLoop(generator):
+    """stop the loop
+    Generator is the return value of guiLoop."""
+    try: generator.throw(StopLoopException())
+    except StopLoopException: pass
+
+class App(Frame):
+	def __init__(self , main , script , strategy , ratio , gap , center):
+		self.main = main
+		self.main.geometry('500x400')
+		self.main.title(f'{script}')
+		self.btn = Button(self.main , text = 'Stop' , command=lambda:self.main.quit()).pack(fill=BOTH)
+		f = Frame(self.main)
+		f.pack(fill=BOTH , expand=1)
+
+		@guiLoop
+		def create_dataframe(n , start , ratio , end , gap ):
+			fstart = start 
+
+			for i in range(2200):
+				start = fstart
+				main_df = pd.DataFrame(columns =['Price' , 'Buy Spread' , 'Sell Spread' , 'Max'])
+				while start <=end:
+					bid = [np.random.randint(10 , 30 ) for _ in range(3)]
+					ask = [np.random.randint(bid[x]-1 , bid[x]+1) for x in range(3)]
+					bs = ask[0] * ratio[0] - bid[1] * ratio[1] + bid[2] * ratio[2]
+					ss = -(bid[0] * ratio[0]) + ask[1] * ratio[1] - bid[2] * ratio[2]
+					main_df.loc[len(main_df.index)] = [start , bs , ss , max(bs , ss)]
+
+					start += gap
+
+				if i == 0:
+					self.table = pt = Table(f , dataframe=main_df.sort_values(by='Max' , ascending=False).reset_index(drop=True))
+					pt.show()
+				else:
+					pt.updateModel(TableModel(main_df.sort_values(by='Max' , ascending=False).reset_index(drop=True)))
+					pt.redraw()
+				yield 5
+
+		if strategy == 'Butterfly':
+			self.ratio = [int(d) for d in ratio]
+			self.start = new_df3.loc[0 , 'Price']
+			self.n = len(new_df3) -1
+			self.end = new_df3.loc[self.n , 'Price']
+			self.generator = create_dataframe(f , self.n , self.start, self.ratio , self.end ,gap)
+
 
 class AutocompleteCombobox(Combobox):
 
@@ -150,12 +264,10 @@ class Userinterface:
 		self.c9 = Combobox(root ,values= ratio_list)
 		self.c9.bind('<<ComboboxSelected>>' , self.c9_selected)
 
-		self.btn = Button(root ,text='Start', command=self.submit )
-		self.btn1 = Button(root , text='Stop' , command =lambda: root.destroy())
+		self.btn = Button(root ,text='Add', command=self.submit )
+		self.btn1 = Button(root , text='Exit' , command =lambda: root.destroy())
 
 		# self.l10 = Label(root , text="" , background=bg_color )
-		self.l10 = Text(root)
-		self.l10['bg'] = bg_color
 
 		self.l1.grid(column=0 , row=0)
 		self.c1.grid(column=1 , row=0 , pady = 5 , padx= 5)
@@ -188,12 +300,12 @@ class Userinterface:
 		self.btn.grid(column=1 , row=5 , padx=5  , pady=5)
 		self.btn1.grid(column=3 , row=5, pady = 5 , padx = 5)
 
-		self.l10.grid(column=0 , row=6 , columnspan=4 , pady = 5 , padx = 5)
+		# self.l10.grid(column=1 , row=6 , pady = 5 , padx = 5)
 
 	def c1_selected(self ,event):
-	    script_name = event.widget.get()
+	    self.script_name = event.widget.get()
 	    global new_df
-	    new_df = df[df['Script']==script_name]
+	    new_df = df[df['Script']==self.script_name]
 
 	def c2_selected(self ,event):
 	    option = event.widget.get()
@@ -233,59 +345,23 @@ class Userinterface:
 	    self.ratio = event.widget.get()
 	    
 	def submit(self):
-	    gap = self.gap1.get()
-	    center = self.center1.get()
-	    sst = self.sst1.get()
-	    global ratio
-	    global new_df3
-	    new_df3 = new_df3.reset_index(drop=True)
+		try:
+			del(new_df)
+			del(new_df1)
+			del(new_df2)
+		except Exception as e:
+			pass
 
+		global new_df3
+		new_df3 = new_df3.reset_index(drop=True)
 
-	    # def empty_box(n,start , end , gap ):
-	    # 	fstart = start
-	    # 	label_text = """SPOT   BS    SS   MAX \n"""
-	    # 	# self.l10.delete('1.0' , END)
-	    # 	# self.l10.insert(END, f'SPOT   BS    SS   MAX \n')
-	    # 	for i in range(n):
-	    # 		if start<=end:
-	    # 			break
-	    # 		bid = [np.random.randint(10 , 30 ) for _ in range(3)]
-	    # 		ask = [np.random.randint(bid[x]-1 , bid[x]+1) for x in range(3)]
-	    # 		bs = ask[0] * ratio[0] - bid[1] * ratio[1] + ask[2] * ratio[2]
-	    # 		ss = -(bid[0] * ratio[0]) + ask[1] * ratio[1] + bid[2] * ratio[2]
-	    # 		label_text+= "".join(f'{start}   {bs}   {ss}    {max(bs , ss)} \n')
-	    # 		# self.l10.insert(END , f'{start}   {bs}   {ss}    {max(bs , ss)} \n')
-
-	    # 		start += gap 
-
-	    # 	self.l10.configure(text= label_text)
-
-	    # 	root.after(10000 , empty_box(n,fstart , end , gap))
-	    
-	    if sst == 'Butterfly':
-	        ratio = [int(d) for d in self.ratio]
-	        start = new_df3.loc[0 , 'Price']
-	        n = len(new_df3)-1
-	        end = new_df3.loc[n ,'Price']
-	        fstart = start
-
-	        self.l10.insert(END , f'SPOT   BS    SS   MAX \n')
-
-	        while start <= end:
-	        	bid = [np.random.randint(10,30) for _ in range(3)]
-	        	ask = [np.random.randint(bid[x]-1 , bid[x]+1) for x in range(3)]
-	        	bs = ask[0] * ratio[0] - bid[1] * ratio[1] + ask[2] * ratio[2]
-	        	ss = -(bid[0] * ratio[0])+ ask[1] * ratio[1] - bid[2] * ratio[2]
-	        	self.l10.insert(END , f'{start}   {bs}    {ss}   {max(bs , ss)} \n')
-
-	        	start += gap 
-
-	        # root.after(1 , empty_box(n,start , end , gap))
-
+		main = Tk()
+		app = App(main ,self.script_name , self.sst1.get() , self.ratio , self.gap1.get() , self.center1.get())
+		main.mainloop()
 
 root  = Tk()
 r = Userinterface(root)
-root.geometry('655x615')
+root.geometry('550x195')
 root['bg'] = bg_color
 root.title('Codesure')
 
