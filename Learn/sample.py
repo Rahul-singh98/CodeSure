@@ -1,9 +1,10 @@
 from tkinter import *
 from tkinter.ttk import * 
+from tkinter.messagebox import *
 import datetime
 import pandas as pd
 import numpy as np
-import time
+# import time
 from pandastable import Table , TableModel
 import warnings
 warnings.simplefilter('ignore')
@@ -47,7 +48,7 @@ ratio_list = ['121' ,'143']
 
 
 def popup(msg):
-	pop = Tk()
+	pop = Toplevel(root)
 	pop.wm_title('Info')
 	def leave():
 		pop.destroy()
@@ -134,15 +135,16 @@ class App(Frame):
 		self.main = main
 		self.main.geometry('500x400')
 		self.main.title(f'{script}')
-		self.btn = Button(self.main , text = 'Stop' , command=lambda:self.main.quit()).pack(fill=BOTH)
+		self.btn = Button(self.main , text = 'Stop' , command=lambda:self.main.destroy()).pack(fill=BOTH)
 		f = Frame(self.main)
 		f.pack(fill=BOTH , expand=1)
 
 		@guiLoop
 		def create_dataframe(n , start , ratio , end , gap ):
 			fstart = start 
+			i = 0
 
-			for i in range(2200):
+			for i in range(2200): # datetime.datetime.now().strftime('%H:%M') <= datetime.time(15,30).strftime('%H:%M') and datetime.datetime.now().strftime('%H:%M') >= datetime.time(9,15).strftime('%H:%M'):
 				start = fstart
 				main_df = pd.DataFrame(columns =['Price' , 'Buy Spread' , 'Sell Spread' , 'Max'])
 				while start <=end:
@@ -160,6 +162,8 @@ class App(Frame):
 				else:
 					pt.updateModel(TableModel(main_df.sort_values(by='Max' , ascending=False).reset_index(drop=True)))
 					pt.redraw()
+
+				# i += 1
 				yield 5
 
 		if strategy == 'Butterfly':
@@ -169,6 +173,8 @@ class App(Frame):
 			self.end = new_df3.loc[self.n , 'Price']
 			self.generator = create_dataframe(f , self.n , self.start, self.ratio , self.end ,gap)
 
+			self.main.bind('<Control-Q>' , lambda event=None :self.main.destroy())
+			self.main.bind('<Control-1>' , lambda event=None: self.main.destroy())
 
 class AutocompleteCombobox(Combobox):
 
@@ -247,17 +253,20 @@ class Userinterface:
 		self.c5 = Combobox(root)
 		self.c5.bind('<<ComboboxSelected>>' , self.c5_selected)
 
-		self.sst1 = StringVar()
+		self.sst = StringVar()
 		self.l6 = Label(root , text= 'Strategy', background=bg_color )
-		self.c6 = Combobox(root , values = strategy_list , textvariable=self.sst1)
+		self.c6 = Combobox(root , values = strategy_list , textvariable=self.sst)
+		self.c6.set(strategy_list[0])
 
-		self.center1 = IntVar()
+		self.center = IntVar()
 		self.l7 = Label(root , text='Center', background=bg_color )
-		self.c7 = Entry(root , textvariable=self.center1)
+		self.c7 = Entry(root , textvariable=self.center)
+		# self.center.trace_add('write' ,self.callback)
 		
-		self.gap1 = IntVar()
+		self.gap = IntVar()
 		self.l8 = Label(root , text='Gap', background=bg_color )
-		self.c8 = Entry(root , textvariable=self.gap1)
+		self.c8 = Entry(root , textvariable=self.gap)
+		# self.gap.trace_add('write' , self.callback)
 
 
 		self.l9 = Label(root , text='Ratio', background=bg_color )
@@ -300,7 +309,14 @@ class Userinterface:
 		self.btn.grid(column=1 , row=5 , padx=5  , pady=5)
 		self.btn1.grid(column=3 , row=5, pady = 5 , padx = 5)
 
-		# self.l10.grid(column=1 , row=6 , pady = 5 , padx = 5)
+	def callback(self , var , idx , mode):
+		try:
+			if var.get() <= 0:
+				print()
+			else :
+				var.get() 
+		except :
+			showerror('Error','Gap/Center cannot be zero or negative')
 
 	def c1_selected(self ,event):
 	    self.script_name = event.widget.get()
@@ -315,14 +331,18 @@ class Userinterface:
 	    	new_df1 = new_df[new_df['Type'] == option]
 	    	self.c3['values'] = sorted(np.unique([str(x).split(' ')[0] for x in new_df1.sort_values(by='Expiry')['Expiry'].tolist()]).tolist())
 	    except :
-	    	popup("You have not seleted the Script Correctly !!! ")
+	    	popup("Please select the Script Correctly !!! ")
 	    
 	def c3_selected(self ,event):
 	    exp = event.widget.get()
 	    global new_df1
 	    global new_df2
-	    new_df2 = new_df1[new_df1['Expiry']==exp]
-	    self.c4['values'] = sorted(new_df2['Price'].tolist())
+	    try :
+	    	new_df2 = new_df1[new_df1['Expiry']==exp]
+	    	self.c4['values'] = sorted(new_df2['Price'].tolist())
+
+	    except:
+	    	popup('Please the Expiry correctly !!! ')
 
 	def c4_selected(self ,event):
 	    global val
@@ -341,7 +361,7 @@ class Userinterface:
 	    new_df3 = new_df3[:end[0]]
 	    
 	def c9_selected(self ,event):
-	    global ratio
+	    # global ratio
 	    self.ratio = event.widget.get()
 	    
 	def submit(self):
@@ -355,8 +375,8 @@ class Userinterface:
 		global new_df3
 		new_df3 = new_df3.reset_index(drop=True)
 
-		main = Tk()
-		app = App(main ,self.script_name , self.sst1.get() , self.ratio , self.gap1.get() , self.center1.get())
+		main = Toplevel(root)
+		app = App(main ,self.script_name , self.sst.get() , self.ratio , self.gap.get() , self.center.get())
 		main.mainloop()
 
 root  = Tk()
