@@ -1,65 +1,41 @@
-import sys
 import socket
-import selectors
-import traceback
+import tqdm 
+import os 
 
-import libclient
+SERVER_HOST = '127.0.0.1'
+SERVER_PORT = 5001
 
-sel = selectors.DefaultSelector()
+BUFFER_SIZE = 4096
+SEPARATOR = '<SEPARATOR>'
 
+s = socket.socket()
 
-def create_request(action, value):
-    if action == "search":
-        return dict(
-            type="text/json",
-            encoding="utf-8",
-            content=dict(action=action, value=value),
-        )
-    else:
-        return dict(
-            type="binary/custom-client-binary-type",
-            encoding="binary",
-            content=bytes(action + value, encoding="utf-8"),
-        )
+s.bind((SERVER_HOST, SERVER_PORT))
+s.listen(5)
 
+print(f'[*] Listening as {SERVER_HOST}:{SERVER_PORT}')
 
-def start_connection(host, port, request):
-    addr = (host, port)
-    print("starting connection to", addr)
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.setblocking(False)
-    sock.connect_ex(addr)
-    events = selectors.EVENT_READ | selectors.EVENT_WRITE
-    message = libclient.Message(sel, sock, addr, request)
-    sel.register(sock, events, data=message)
+client_socket , address = s.accept()
 
+print(f'[*] {address} is connected')
 
-if len(sys.argv) != 5:
-    print("usage:", sys.argv[0], "<host> <port> <action> <value>")
-    sys.exit(1)
+received = client_socket.recv(BUFFER_SIZE).decode()
+filename , filesize = received.split(SEPARATOR)
+filename = os.path.basename(filename)
 
-host, port = sys.argv[1], int(sys.argv[2])
-action, value = sys.argv[3], sys.argv[4]
-request = create_request(action, value)
-start_connection(host, port, request)
+filesize = int(filesize)
 
-try:
+progress = tqdm.tqdm(range(filesize) , f'Receiving {filename}' , unit='B' , unit_scale=True , unit_divisor= 1024)
+with open(filename , 'wb') as f:
     while True:
-        events = sel.select(timeout=1)
-        for key, mask in events:
-            message = key.data
-            try:
-                message.process_events(mask)
-            except Exception:
-                print(
-                    "main: error: exception for",
-                    f"{message.addr}:\n{traceback.format_exc()}",
-                )
-                message.close()
-        # Check for a socket being monitored to continue.
-        if not sel.get_map():
+        bytes_read = client_socket.recv(BUFFER_SIZE)
+
+        if not bytes_read:
             break
-except KeyboardInterrupt:
-    print("caught keyboard interrupt, exiting")
-finally:
-    sel.close()
+
+        f.write(bytes_read)
+
+        progress.update(len(bytes_read))
+
+client_socket.close()
+s.close()
