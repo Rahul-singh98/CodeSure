@@ -2,9 +2,12 @@ from tkinter import *
 from tkinter.ttk import * 
 from tkinter.messagebox import *
 import datetime
+import time
+import socket 
+import threading 
+import os
 import pandas as pd
 import numpy as np
-# import time
 from pandastable import Table , TableModel
 import warnings
 warnings.simplefilter('ignore')
@@ -46,6 +49,20 @@ strategy_list = ['Butterfly']
 option_type_list = sorted(['CE' , 'PE'])
 ratio_list = ['121' ,'143']
 
+HOST = socket.gethostbyname(socket.gethostname())
+PORT = 5000
+
+ADDRESS = (HOST , PORT)
+FORMAT = 'utf-8'
+BUFFER_SIZE = 4096
+
+client = socket.socket()
+
+print(f'Connecting ...')
+client.connect(ADDRESS)
+print(f'Connected to {HOST}:{PORT}')
+FILENAME = 'received.json'
+FILENAME = os.path.basename(FILENAME)
 
 def popup(msg):
 	pop = Toplevel(root)
@@ -130,22 +147,32 @@ def stopLoop(generator):
     try: generator.throw(StopLoopException())
     except StopLoopException: pass
 
-class App(Frame):
-	def __init__(self , main , script , strategy , ratio , gap , center):
+class GridWindow(Frame):
+	def __init__(self , main , script ,option , expiry , strategy , ratio , gap , center):
 		self.main = main
 		self.main.geometry('500x400')
 		self.main.title(f'{script}')
 		self.btn = Button(self.main , text = 'Stop' , command=lambda:self.main.destroy()).pack(fill=BOTH)
-		f = Frame(self.main)
-		f.pack(fill=BOTH , expand=1)
+		frame = Frame(self.main)
+		frame.pack(fill=BOTH , expand=1)
 
 		@guiLoop
 		def create_dataframe(n , start , ratio , end , gap ):
 			fstart = start 
-			i = 0
-
+			# i = 0
+			
 			for i in range(2200): # datetime.datetime.now().strftime('%H:%M') <= datetime.time(15,30).strftime('%H:%M') and datetime.datetime.now().strftime('%H:%M') >= datetime.time(9,15).strftime('%H:%M'):
 				start = fstart
+				client.send(f'{self.script}|{self.option}|{self.expiry}|{self.start}|{self.end}|{self.gap}'.encode(FORMAT))
+				FILESIZE = int(client.recv(1024).decode(FORMAT))
+				# print(f'{client.recv(1024).decode(FORMAT)} is received from server')
+				client.send('received'.encode(FORMAT))
+				with open(FILENAME , 'w') as f:
+					bytes_read = client.recv(FILESIZE).decode()
+					f.write(bytes_read)
+					f.close()
+				calc = pd.read_json('received.json')
+				print(f'{calc}')
 				main_df = pd.DataFrame(columns =['Price' , 'Buy Spread' , 'Sell Spread' , 'Max'])
 				while start <=end:
 					bid = [np.random.randint(10 , 30 ) for _ in range(3)]
@@ -157,7 +184,8 @@ class App(Frame):
 					start += gap
 
 				if i == 0:
-					self.table = pt = Table(f , dataframe=main_df.sort_values(by='Max' , ascending=False).reset_index(drop=True))
+					print(f'{main_df}')
+					self.table = pt = Table(frame , dataframe=main_df.sort_values(by='Max' , ascending=False).reset_index(drop=True))
 					pt.show()
 				else:
 					pt.updateModel(TableModel(main_df.sort_values(by='Max' , ascending=False).reset_index(drop=True)))
@@ -171,7 +199,11 @@ class App(Frame):
 			self.start = new_df3.loc[0 , 'Price']
 			self.n = len(new_df3) -1
 			self.end = new_df3.loc[self.n , 'Price']
-			self.generator = create_dataframe(f , self.n , self.start, self.ratio , self.end ,gap)
+			self.gap = gap
+			self.script = script 
+			self.option = option 
+			self.expiry = expiry
+			self.generator = create_dataframe(frame , self.n , self.start, self.ratio , self.end ,self.gap)
 
 			self.main.bind('<Control-Q>' , lambda event=None :self.main.destroy())
 			self.main.bind('<Control-1>' , lambda event=None: self.main.destroy())
@@ -230,84 +262,88 @@ class AutocompleteCombobox(Combobox):
 
 class Userinterface:
 	def __init__(self, root) :
-		self.l1 = Label(root , background=bg_color , text='Script')
-		self.c1 = AutocompleteCombobox(root)
-		self.c1.set_completion_list(script_list)
-		self.c1.bind('<<ComboboxSelected>>' , self.c1_selected)
+		titleBarImage = PhotoImage(file = 'CodeSurelogo.png')
+		root.iconphoto(True , titleBarImage)
+		self.label_script = Label(root , background=bg_color , text='Script')
+		self.combo_script = AutocompleteCombobox(root)
+		self.combo_script.set_completion_list(script_list)
+		self.combo_script.bind('<<ComboboxSelected>>' , self.comboScript_selected)
+		# self.combo_script.set(script_list[113])
 
 
-		self.l2 = Label(root , text='Option Type', background=bg_color )
-		self.c2 = Combobox(root)
-		self.c2['values'] = option_type_list
-		self.c2.bind('<<ComboboxSelected>>' , self.c2_selected)
+		self.label_option = Label(root , text='Option Type', background=bg_color )
+		self.combo_option = Combobox(root)
+		self.combo_option['values'] = option_type_list
+		self.combo_option.bind('<<ComboboxSelected>>' , self.comboOption_selected)
+		# self.c2.set(option_type_list[0])
 
-		self.l3 = Label(root , text='Expiry' , background=bg_color )
-		self.c3 = Combobox(root)
-		self.c3.bind('<<ComboboxSelected>>' , self.c3_selected)
+		self.label_expiry = Label(root , text='Expiry' , background=bg_color )
+		self.combo_expiry = Combobox(root)
+		self.combo_expiry.bind('<<ComboboxSelected>>' , self.comboExpiry_selected)
 
-		self.l4 = Label(root , text='Lower Range', background=bg_color )
-		self.c4 = Combobox(root)
-		self.c4.bind('<<ComboboxSelected>>' , self.c4_selected)
+		self.label_lowerR = Label(root , text='Lower Range', background=bg_color )
+		self.combo_lowerR = Combobox(root)
+		self.combo_lowerR.bind('<<ComboboxSelected>>' , self.comboLowerR_selected)
 
-		self.l5 = Label(root , text='Upper Range', background=bg_color )
-		self.c5 = Combobox(root)
-		self.c5.bind('<<ComboboxSelected>>' , self.c5_selected)
+		self.label_upperR = Label(root , text='Upper Range', background=bg_color )
+		self.combo_upperR = Combobox(root)
+		self.combo_upperR.bind('<<ComboboxSelected>>' , self.comboUpperR_selected)
 
-		self.sst = StringVar()
-		self.l6 = Label(root , text= 'Strategy', background=bg_color )
-		self.c6 = Combobox(root , values = strategy_list , textvariable=self.sst)
-		self.c6.set(strategy_list[0])
+		self.strategy_var = StringVar()
+		self.label_strategy = Label(root , text= 'Strategy', background=bg_color )
+		self.combo_strategy = Combobox(root , values = strategy_list , textvariable=self.strategy_var)
+		self.combo_strategy.set(strategy_list[0])
 
 		self.center = IntVar()
-		self.l7 = Label(root , text='Center', background=bg_color )
-		self.c7 = Entry(root , textvariable=self.center)
+		self.label_center = Label(root , text='Center', background=bg_color )
+		self.entry_center = Entry(root , textvariable=self.center)
 		# self.center.trace_add('write' ,self.callback)
 		
 		self.gap = IntVar()
-		self.l8 = Label(root , text='Gap', background=bg_color )
-		self.c8 = Entry(root , textvariable=self.gap)
+		self.label_gap = Label(root , text='Gap', background=bg_color )
+		self.entry_gap = Entry(root , textvariable=self.gap)
 		# self.gap.trace_add('write' , self.callback)
 
 
-		self.l9 = Label(root , text='Ratio', background=bg_color )
-		self.c9 = Combobox(root ,values= ratio_list)
-		self.c9.bind('<<ComboboxSelected>>' , self.c9_selected)
+		self.label_ratio = Label(root , text='Ratio', background=bg_color )
+		self.combo_ratio = Combobox(root ,values= ratio_list)
+		self.combo_ratio.bind('<<ComboboxSelected>>' , self.comboRatio_selected)
 
-		self.btn = Button(root ,text='Add', command=self.submit )
-		self.btn1 = Button(root , text='Exit' , command =lambda: root.destroy())
+		self.add_button = Button(root ,text='Add', command=self.add )
+		self.exit_button = Button(root , text='Exit' , command =lambda: root.destroy())
 
 		# self.l10 = Label(root , text="" , background=bg_color )
 
-		self.l1.grid(column=0 , row=0)
-		self.c1.grid(column=1 , row=0 , pady = 5 , padx= 5)
+		self.label_script.grid(column=0 , row=0)
+		self.combo_script.grid(column=1 , row=0 , pady = 5 , padx= 5)
 
-		self.l2.grid(column=2 , row=0)
-		self.c2.grid(column=3 , row=0 , pady = 5 , padx = 5)
+		self.label_option.grid(column=2 , row=0)
+		self.combo_option.grid(column=3 , row=0 , pady = 5 , padx = 5)
 
-		self.l3.grid(column=0 , row=1)
-		self.c3.grid(column=1 , row=1, pady = 5 , padx = 5)
+		self.label_expiry.grid(column=0 , row=1)
+		self.combo_expiry.grid(column=1 , row=1, pady = 5 , padx = 5)
 
-		self.l4.grid(column=2 , row=1)
-		self.c4.grid(column=3 , row=1, pady = 5 , padx = 5)
+		self.label_lowerR.grid(column=2 , row=1)
+		self.combo_lowerR.grid(column=3 , row=1, pady = 5 , padx = 5)
 
-		self.l5.grid(column=0 , row=2)
-		self.c5.grid(column=1 , row=2, pady = 5 , padx = 5)
+		self.label_upperR.grid(column=0 , row=2)
+		self.combo_upperR.grid(column=1 , row=2, pady = 5 , padx = 5)
 
-		self.l6.grid(column=2 , row=2)
-		self.c6.grid(column=3 , row=2, pady = 5 , padx = 5)
+		self.label_strategy.grid(column=2 , row=2)
+		self.combo_strategy.grid(column=3 , row=2, pady = 5 , padx = 5)
 
-		self.l7.grid(column=0 , row=3)
-		self.c7.grid(column=1 , row=3, pady = 5 , padx = 5)
+		self.label_center.grid(column=0 , row=3)
+		self.entry_center.grid(column=1 , row=3, pady = 5 , padx = 5)
 
-		self.l8.grid(column=2 , row=3)
-		self.c8.grid(column=3 , row=3, pady = 5 , padx = 5)
+		self.label_gap.grid(column=2 , row=3)
+		self.entry_gap.grid(column=3 , row=3, pady = 5 , padx = 5)
 
-		self.l9.grid(column=0 , row=4)
-		self.c9.grid(column=1 , row=4, pady = 5 , padx = 5)
+		self.label_ratio.grid(column=0 , row=4)
+		self.combo_ratio.grid(column=1 , row=4, pady = 5 , padx = 5)
 
 
-		self.btn.grid(column=1 , row=5 , padx=5  , pady=5)
-		self.btn1.grid(column=3 , row=5, pady = 5 , padx = 5)
+		self.add_button.grid(column=1 , row=5 , padx=5  , pady=5)
+		self.exit_button.grid(column=3 , row=5, pady = 5 , padx = 5)
 
 	def callback(self , var , idx , mode):
 		try:
@@ -318,40 +354,40 @@ class Userinterface:
 		except :
 			showerror('Error','Gap/Center cannot be zero or negative')
 
-	def c1_selected(self ,event):
+	def comboScript_selected(self ,event):
 	    self.script_name = event.widget.get()
 	    global new_df
 	    new_df = df[df['Script']==self.script_name]
 
-	def c2_selected(self ,event):
-	    option = event.widget.get()
+	def comboOption_selected(self ,event):
+	    self.option = event.widget.get()
 	    global new_df
 	    global new_df1
 	    try :
-	    	new_df1 = new_df[new_df['Type'] == option]
-	    	self.c3['values'] = sorted(np.unique([str(x).split(' ')[0] for x in new_df1.sort_values(by='Expiry')['Expiry'].tolist()]).tolist())
+	    	new_df1 = new_df[new_df['Type'] == self.option]
+	    	self.combo_expiry['values'] = sorted(np.unique([str(x).split(' ')[0] for x in new_df1.sort_values(by='Expiry')['Expiry'].tolist()]).tolist())
 	    except :
 	    	popup("Please select the Script Correctly !!! ")
 	    
-	def c3_selected(self ,event):
-	    exp = event.widget.get()
+	def comboExpiry_selected(self ,event):
+	    self.exp = event.widget.get()
 	    global new_df1
 	    global new_df2
 	    try :
-	    	new_df2 = new_df1[new_df1['Expiry']==exp]
-	    	self.c4['values'] = sorted(new_df2['Price'].tolist())
+	    	new_df2 = new_df1[new_df1['Expiry']==self.exp]
+	    	self.combo_lowerR['values'] = sorted(new_df2['Price'].tolist())
 
 	    except:
 	    	popup('Please the Expiry correctly !!! ')
 
-	def c4_selected(self ,event):
+	def comboLowerR_selected(self ,event):
 	    global val
 	    self.val = event.widget.get()
-	    l = self.c4['values']
+	    l = self.combo_lowerR['values']
 	    new_list = l[l.index(self.val)+1:]
-	    self.c5['values'] = new_list
+	    self.combo_upperR['values'] = new_list
 	    
-	def c5_selected(self ,event):
+	def comboUpperR_selected(self ,event):
 	    global new_df2
 	    global new_df3
 
@@ -360,11 +396,11 @@ class Userinterface:
 	    end = new_df3[new_df3['Price'] == int(event.widget.get())].index
 	    new_df3 = new_df3[:end[0]]
 	    
-	def c9_selected(self ,event):
+	def comboRatio_selected(self ,event):
 	    # global ratio
 	    self.ratio = event.widget.get()
 	    
-	def submit(self):
+	def add(self):
 		try:
 			del(new_df)
 			del(new_df1)
@@ -376,10 +412,12 @@ class Userinterface:
 		new_df3 = new_df3.reset_index(drop=True)
 
 		main = Toplevel(root)
-		app = App(main ,self.script_name , self.sst.get() , self.ratio , self.gap.get() , self.center.get())
+		new_win = GridWindow(main ,self.script_name ,self.option , self.exp , self.strategy_var.get() , self.ratio , self.gap.get() , self.center.get())
 		main.mainloop()
 
 root  = Tk()
+# p1 = PhotoImage(file = 'CodeSurelogo.png')
+# root.iconphoto(True , p1)
 r = Userinterface(root)
 root.geometry('550x195')
 root['bg'] = bg_color
