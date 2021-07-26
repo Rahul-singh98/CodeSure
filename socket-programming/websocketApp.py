@@ -12,7 +12,7 @@ import gzip , json , base64
 import os 
 from threading import Thread
 
-csv_filepath = './contract.txt'
+csv_filepath = '../Data/contract.txt'
 
 cols = [i for i in range(0,70)]
 
@@ -26,7 +26,7 @@ df['Price'] = df['Price'].apply(lambda x: (x/100)).astype('int')
 dChange =int(datetime.datetime(1980, 1,1,0,0).timestamp())
 df['Expiry'] = df['Expiry'].apply(lambda x: datetime.datetime.fromtimestamp(dChange + x).strftime('%d-%m-%Y')).astype('datetime64')
 
-csv_filepath = '../../Downloads/security.txt' 
+csv_filepath = '../Data/security.txt' 
 cols = [i for i in range(55)] 
 eq_df = pd.read_csv(csv_filepath , sep='|' , skiprows=1 , names=cols)     
 eq_df = eq_df[[0,1,2]]
@@ -40,6 +40,7 @@ new_df2 = pd.DataFrame()
 new_df3 = pd.DataFrame()
 
 idx = 0
+DataDict = dict()
 script_list =sorted(df['Script'].dropna().unique().tolist())
 strategy_list = ['Butterfly']
 ratio_list = ['121' ,'143']
@@ -59,7 +60,7 @@ class WebSocketClient():
 
             websockets.client.connect returns a WebSocketClientProtocol, which is used to send and receive messages
         '''
-        self.connection = await websockets.client.connect('ws://122.160.79.135:10771/Broadcast')
+        self.connection = await websockets.connect('ws://122.160.79.135:10771/Broadcast')
         if self.connection.open:
             print('Connection stablished. Client correcly connected')
             # Send greeting
@@ -87,33 +88,34 @@ class WebSocketClient():
             try:
                 message = await connection.recv()
                 # myToken = int.from_bytes(message[2:6] , 'little')
-                if int.from_bytes(message[2:6] , 'little') in DataDict.keys():
+                if  tokenNo in DataDict.keys():
                     # selected = DataGrid.focus()
                     # DataGrid.item(selected , 'values')
                     # print(f'DataDictionary index: {DataDict[myToken]}')
-                    DataGrid.item(DataDict[int.from_bytes(message[2:6] , 'little')] ,values=(int.from_bytes(message[2:6] , 'little') , 
-                        int.from_bytes(message[6:10] , 'little')/100 , 
-                        int.from_bytes(message[10:14] , 'little'), 
-                        int.from_bytes(message[14:18] , 'little')/100 ,
-                        int.from_bytes(message[18:22] , 'little') ,
-                        int.from_bytes(message[22:26] , 'little') ,
-                        int.from_bytes(message[26:30] , 'little') ,
-                        int.from_bytes(message[30:34] , 'little')/100 ,
-                        int.from_bytes(message[34:38] , 'little')/100 ,
-                        int.from_bytes(message[38:42] , 'little') /100,
-                        int.from_bytes(message[42:46] , 'little')/100 ,
-                        (datetime.datetime.fromtimestamp(int(datetime.datetime(1980, 1,1,0,0).timestamp()) + 
-                            int.from_bytes(message[46:50] , 'little'))).strftime('%d-%m-%Y') ,
-                        int.from_bytes(message[50:54] , 'little') /100,
-                        int.from_bytes(message[54:58] , 'little') /100,
-                        int.from_bytes(message[58:62] , 'little') ,
-                        int.from_bytes(message[62:66] , 'little')/100))
+                    if int.from_bytes(message[2:6] , 'little') in DataDict.keys():
+                        DataGrid.item(DataDict[int.from_bytes(message[2:6] , 'little')] ,values=(int.from_bytes(message[2:6] , 'little') , 
+                            int.from_bytes(message[6:10] , 'little')/100 , 
+                            int.from_bytes(message[10:14] , 'little'), 
+                            int.from_bytes(message[14:18] , 'little')/100 ,
+                            int.from_bytes(message[18:22] , 'little') ,
+                            int.from_bytes(message[22:26] , 'little') ,
+                            int.from_bytes(message[26:30] , 'little') ,
+                            int.from_bytes(message[30:34] , 'little')/100 ,
+                            int.from_bytes(message[34:38] , 'little')/100 ,
+                            int.from_bytes(message[38:42] , 'little') /100,
+                            int.from_bytes(message[42:46] , 'little')/100 ,
+                            (datetime.datetime.fromtimestamp(int(datetime.datetime(1980, 1,1,0,0).timestamp()) + 
+                                int.from_bytes(message[46:50] , 'little'))).strftime('%d-%m-%Y') ,
+                            int.from_bytes(message[50:54] , 'little') /100,
+                            int.from_bytes(message[54:58] , 'little') /100,
+                            int.from_bytes(message[58:62] , 'little') ,
+                            int.from_bytes(message[62:66] , 'little')/100))
 
                 else :
-                    await DataDict.update({tokenNo : idx})
-                    print('DataDictionary updated...')
+                    DataDict.update({tokenNo : idx})
+                    print(f'DataDictionary updated... {tokenNo} and \n{DataDict}')
                     
-            except websockets.exceptions.ConnectionClosed:
+            except Exception as e:
                 print('receiveMessage Connection with server closed')
                 break
 
@@ -162,7 +164,7 @@ class AutocompleteCombobox(Combobox):
         def autocomplete(self, delta=0):
                 """autocomplete the Combobox, delta may be 0/1/-1 to cycle through possible hits"""
                 if delta: # need to delete selection otherwise we would fix the current position
-                        self.delete(self.position, Tkinter.END)
+                        self.delete(self.position, END)
                 else: # set position to end so selection starts where textentry ended
                         self.position = len(self.get())
                 # collect hits
@@ -456,7 +458,7 @@ class OptionsFrame(LabelFrame):
 class AddContract(Toplevel):
     def __init__(self,container):
         super().__init__(container)
-        self.DataDict = dict()
+        # self.DataDict = dict()
         self.geometry('560x200+300+300')
         self.title('Add Contract')
         self.resizable(False , False)
@@ -502,25 +504,25 @@ class AddContract(Toplevel):
         		f.grid_forget()
         frame.tkraise()
         
-    async def fileReceive(self , tokenNo , idx):
+    def fileReceive(self , tokenNo , idx , DataGrid , DataDict):
     #     client = WebSocketClient()
-        # loop = asyncio.new_event_loop()
-        # asyncio.set_event_loop(loop)
-        # loop = asyncio.get_event_loop()
-        # connection = loop.run_until_complete(client.connect())
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop = asyncio.get_event_loop()
+        connection = loop.run_until_complete(client.connect())
         # Start listener and heartbeat 
         tasks = [
             asyncio.ensure_future(client.heartbeat(connection , tokenNo)),
-            asyncio.ensure_future(client.receiveMessage(connection, tokenNo, self.DataGrid ,idx , self.DataDict)),
+            asyncio.ensure_future(client.receiveMessage(connection, tokenNo, DataGrid ,idx , DataDict)),
         ]
 
         try:
-            asyncio.run_coroutine_threadsafe(asyncio.wait(tasks) ,loop)
+            loop.run_until_complete(asyncio.wait(tasks) )
         except Exception as e  :
             print(f"Coroutine error {e}")
         finally:
             loop.close()
-            loop.shutdown()
+            loop.stop()
 
     def add(self):
         try:
@@ -540,6 +542,7 @@ class AddContract(Toplevel):
         self.DataGrid = self.rootNotebook.winfo_children()[1].winfo_children()[0]
         token = new_df3.loc[0 , 'Token No']
         global idx
+        global DataDict
         self.DataGrid.insert(parent="" , index=idx ,iid = idx, values=(0 ,0,0 ,0,0 ,0,0 ,0,0 ,0,0 ,0,0 ,0,0 ,0 ))
 
         # self.display_notebook.add(self.nifty_tab , text=f"{new_df3['Script'].unique()[0]}")
@@ -556,9 +559,10 @@ class AddContract(Toplevel):
         #         self.entry.grid(row=i+3 , column=j ,sticky=N+S+E+W)
         #         self.entry.insert(END , lst[i][j])
         
-        await asyncio.gather(self.fileReceive(token , idx))
-        # guiThread = Thread(target=self.fileReceive , args=[token , idx])
-        # guiThread.start()
+        # await asyncio.gather(self.fileReceive(token , idx))
+        guiThread = Thread(target=self.fileReceive , args=[token , idx , self.DataGrid ,DataDict ])
+        guiThread.start()
+        # guiThread.join()
         idx+=1
         self.destroy()
         
@@ -633,9 +637,17 @@ class App(Tk):
         width = self.winfo_screenwidth()
         height = self.winfo_screenheight()
         self.geometry(f'{width}x{height}')
-        titleImage = PhotoImage(file = 'CodeSurelogo.png')
+        titleImage = PhotoImage(file = '../Data/CodeSurelogo.png')
         self.iconphoto(True , titleImage)
+        self.protocol("WM_DELETE_WINDOW", on_closing)
 
+def on_closing():
+    try:
+        loop = asyncio.get_event_loop()
+        loop.close()
+        loop.stop()
+    except Exception as e:
+        print("HEre is EXceptions : "  , e)
 
 if __name__ == "__main__":
     app = App()
