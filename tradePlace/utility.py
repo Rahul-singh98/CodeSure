@@ -1,6 +1,7 @@
 import pandas as pd
 import datetime
 import websockets , asyncio
+from tkinter.ttk import *
 
 def readCSFunction(contract_filepath = '../Data/contract.txt' ,equity_filepath = '../Data/security.txt' ):
     cols = [i for i in range(0,70)]
@@ -20,13 +21,13 @@ def readCSFunction(contract_filepath = '../Data/contract.txt' ,equity_filepath =
         df = pd.DataFrame()
         print(f"contract file is not present at : {contract_filepath}")
 
-    cols = [i for i in range(55)] 
+    eq_cols = [i for i in range(0,55)] 
 
     try:    
-        eq_df = pd.read_csv(equity_filepath , sep='|' , skiprows=1 , names=cols)     
+        eq_df = pd.read_csv(equity_filepath , sep='|' , skiprows=1 , names=eq_cols)     
         eq_df = eq_df[[0,1,2]]
         eq_df = eq_df[eq_df[2] == "EQ"]
-        eq_df.columns = ['Token No' , 'Script' ]
+        eq_df.columns = ['Token No' , 'Script' ,"Type"]
         eq_df.reset_index(drop=True ,inplace=True)
     except:
         eq_df = pd.DataFrame()
