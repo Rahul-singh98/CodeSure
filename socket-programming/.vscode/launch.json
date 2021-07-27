@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "C/C++ Runner: Debug Session",
+      "type": "cppdbg",
+      "request": "launch",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "/home/rahul/Desktop/CodeSure/socket-programming",
+      "environment": [],
+      "program": "/home/rahul/Desktop/CodeSure/socket-programming/build/Debug/outDebug",
+      "internalConsoleOptions": "openOnSessionStart",
+      "MIMode": "gdb",
+      "miDebuggerPath": "/usr/bin/gdb",
+      "externalConsole": false
+    }
+  ]
+}
