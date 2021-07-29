@@ -412,7 +412,7 @@ class AddContract(Toplevel):
             global idx
             global DataDict
             for i in range(len(script_list)):
-                self.DataGrid.insert(parent="" , index=idx ,iid = idx, values=( token_list[i] ,script_list[i] ,inst ,exp,iType,0 ,0,0 ,0,0 ,0,0 ,0,0 ,0,0 ,0,0 ,0 ,0))
+                self.DataGrid.insert(parent="" , index=token_list[i] ,iid = token_list[i], values=( token_list[i] ,script_list[i] ,inst ,exp,iType,0 ,0,0 ,0,0 ,0,0 ,0,0 ,0,0 ,0,0 ,0 ,0))
                 idx+=1
 
             self.sendToken(token_list)
@@ -439,43 +439,52 @@ class AddContract(Toplevel):
             self.destroy()
 
 def recvMessage(DataGrid):
-    print("Entered in RECVmessge")
+    # print("Entered in RECVmessge")
     while True:  
-        print("While Data")  
+        # print("While Data")  
         try:
             message = client.recv()
-            print(message)
-            # myToken = int.from_bytes(message[2:6] , 'little')
+            print(int.from_bytes(message[:2],'little'))
 
             if type(message)== str:
+                print("This is the string message : " + message)
                 client.send(f'{sessionID}_rahul@thecodesure.com_147258')
                 print("Received String From the server..")
                 client.close()
                 
             else:
-                print(message)
-                token ,name,inst,exp,tp = DataGrid.item(message[int.from_bytes(message[2:6] , 'little')])[0:5]
-                DataGrid.item(message[int.from_bytes(message[2:6] , 'little')] ,values=(token, name , inst, exp , tp,
-                    int.from_bytes(message[2:6] , 'little') , 
-                    int.from_bytes(message[6:10] , 'little')/100 , 
-                    int.from_bytes(message[10:14] , 'little'), 
-                    int.from_bytes(message[14:18] , 'little')/100 ,
-                    int.from_bytes(message[18:22] , 'little') ,
-                    int.from_bytes(message[22:26] , 'little') ,
-                    int.from_bytes(message[26:30] , 'little') ,
-                    int.from_bytes(message[30:34] , 'little')/100 ,
-                    int.from_bytes(message[34:38] , 'little')/100 ,
-                    int.from_bytes(message[38:42] , 'little') /100,
-                    int.from_bytes(message[42:46] , 'little')/100 ,
-                    (datetime.datetime.fromtimestamp(int(datetime.datetime(1980, 1,1,0,0).timestamp()) + 
-                        int.from_bytes(message[46:50] , 'little'))).strftime('%d-%m-%Y') ,
-                    int.from_bytes(message[50:54] , 'little') /100,
-                    int.from_bytes(message[54:58] , 'little') /100,
-                    int.from_bytes(message[58:62] , 'little') ,
-                    int.from_bytes(message[62:66] , 'little')/100))
+                child = DataGrid.get_children()
+                print(child)
+                print(message[int.from_bytes(message[2:6] , 'little')])
+                if len(child)==0:
+                    pass
+                    # print("Empty hai bhai")
+                elif str(message[int.from_bytes(message[2:6] , 'little')]) in child:
+                # else:
+                    print("Entered in else condition")
+                    token , name ,inst ,exp , tp= DataGrid.item(message[int.from_bytes(message[2:6] , 'little')])[0:5]
+                    DataGrid.item(message[int.from_bytes(message[2:6] , 'little')] ,values=(token, name , inst, exp , tp,
+                        int.from_bytes(message[2:6] , 'little') , 
+                        int.from_bytes(message[6:10] , 'little')/100 , 
+                        int.from_bytes(message[10:14] , 'little'), 
+                        int.from_bytes(message[14:18] , 'little')/100 ,
+                        int.from_bytes(message[18:22] , 'little') ,
+                        int.from_bytes(message[22:26] , 'little') ,
+                        int.from_bytes(message[26:30] , 'little') ,
+                        int.from_bytes(message[30:34] , 'little')/100 ,
+                        int.from_bytes(message[34:38] , 'little')/100 ,
+                        int.from_bytes(message[38:42] , 'little') /100,
+                        int.from_bytes(message[42:46] , 'little')/100 ,
+                        (datetime.datetime.fromtimestamp(int(datetime.datetime(1980, 1,1,0,0).timestamp()) + 
+                            int.from_bytes(message[46:50] , 'little'))).strftime('%d-%m-%Y') ,
+                        int.from_bytes(message[50:54] , 'little') /100,
+                        int.from_bytes(message[54:58] , 'little') /100,
+                        int.from_bytes(message[58:62] , 'little') ,
+                        int.from_bytes(message[62:66] , 'little')/100))
+                
 
         except Exception as e:
-            print('receiveMessage Connection with server closed')
+            print('receiveMessage Connection with server closed: ' , e)
             break
         
 class RootFrames(Frame):
@@ -551,6 +560,7 @@ class RootFrames(Frame):
         self.DataGrid.heading('Spot', anchor=CENTER, text='Spot')
 
         self.DataGrid.pack(side='left')        
+        self.DataGrid.bind("<Double-1>",self.onDoubleClick)
         self.contract_tab.pack()
         self.display_tab.pack()
 
@@ -559,39 +569,33 @@ class RootFrames(Frame):
 
         self.url = "ws://122.160.79.135:10771/Broadcast"
 
-        global client 
-        global sessionID
-        client = create_connection(self.url)
-        sessionID = client.recv()
-        print(sessionID)
+        # global client 
+        # global sessionID
+        # client = create_connection(self.url)
+        # sessionID = client.recv()
+        # print(sessionID)
 
-        client.send(f'{sessionID}_rahul@thecodesure.com_159753')
-        client.send(f'{sessionID}_rahul@thecodesure.com_53179')
+        # client.send(f'{sessionID}_rahul@thecodesure.com_159753')
+        # client.send(f'{sessionID}_rahul@thecodesure.com_53179')
 
-        myThread = Thread(target=recvMessage , args=[self.DataGrid] )
-        myThread.start()
-        print('Thread Started')
+        # myThread = Thread(target=recvMessage , args=[self.DataGrid] )
+        # myThread.start()
+        # print('Thread Started')
+
+    def onDoubleClick(self,event):
+        item =self.DataGrid.selection()#identify_column(event.x)
+        print("Selected item : ",item)#self.DataGrid.item(item, 'text') )
 
 class App(Tk):
     def __init__(self):
         super().__init__()
-
         self.title('CodeSure Software Solution Pvt Ltd')
         width = self.winfo_screenwidth()
         height = self.winfo_screenheight()
         self.geometry(f'{width}x{height}')
         titleImage = PhotoImage(file = '../Data/CodeSurelogo.png')
         self.iconphoto(True , titleImage)
-        # self.protocol("WM_DELETE_WINDOW", on_closing)
-
-# def on_closing():
-#     try:
-#         loop = asyncio.get_event_loop()
-#         loop.close()
-#         loop.stop()
-#     except Exception as e:
-#         print("HEre is EXceptions : "  , e)
-
+        
 if __name__ == "__main__":
     app = App()
     RootFrames(app)

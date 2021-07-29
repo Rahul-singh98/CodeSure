@@ -11,12 +11,27 @@ client.send(f'{sessionID}_rahul@thecodesure.com_159753')
 
 def recvMessage():
     while True:
-        message = client.recv()
-        print(int.from_bytes(message[2:6] , 'little'))
+        try:
+            message = client.recv()
+            n = int.from_bytes(message[0:2],'little')
+            print("Length : " , len(message))
+            print("No. of packates : ", n)
+            
+            message =message[2:]
+            val =[]
+            for i in range(0,len(message),4):
+                val.append(int.from_bytes(message[i:i+4] ,'little'))
+            for i in range(n):
+                print("Packet No. " ,i," contains ",val[i*16:(i*16)+16])
+            
+        except :
+            t1.join()
+            
 
 def addToken(token):
     for t in token:
         client.send(f'{sessionID}_rahul@thecodesure.com_{t}')
+
 
 t1 = Thread(target=recvMessage)
 t1.start()
@@ -26,6 +41,7 @@ while True :
     if string == 'EXIT':
         client.send(f"{sessionID}_rahul@thecodesure.com_147258")
         client.close()
+        t1.join()
         print("Exit Successfully")
     token = string.split(",")
     addToken(token)
