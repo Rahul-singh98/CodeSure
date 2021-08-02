@@ -28,14 +28,14 @@ def recvMessage():
                 for i in range(n):
                     print("Packet No. " ,i," contains ",val[i*16:(i*16)+16])
             
-        except WebSocketConnectionClosedException:
+        except Exception as e:
+            client.send(f"{sessionID}_rahul@thecodesure.com_147258")
             print("Connection deactivated")
             
 
 def addToken(token):
     for t in token:
         client.send(f'{sessionID}_rahul@thecodesure.com_{t}')
-
 
 t1 = Thread(target=recvMessage)
 t1.start()
@@ -44,7 +44,6 @@ try:
     while True :
         string = input(">>> ")
         if string == 'EXIT':
-            t1.join()
             client.send(f"{sessionID}_rahul@thecodesure.com_147258")
             client.close()
             print("Exit Successfully")
@@ -53,5 +52,7 @@ try:
 
 except:
     t1.join()
+    client.send(f"{sessionID}_rahul@thecodesure.com_147258")
+    print("Termination send")
     client.close()
     print("Except Exit")

@@ -46,6 +46,7 @@ class App(tk.Frame):
 
         #2. Create a Canvas Overlay to show selected Treeview cell 
         sel_bg = '#ecffc4'
+        # sel_bg = "#660707"
         sel_fg = '#05640e'
         self.setup_selection(sel_bg, sel_fg)
 
@@ -72,7 +73,7 @@ class App(tk.Frame):
         itemText = item['text']
         itemValues = item['values']
         iid = widget.identify_row(y)
-        column = event.widget.identify_column(x)
+        column = widget.identify_column(x)
         print ('\n&&&&&&&& def selectItem(self, event):')
         print ('item = ', item)
         print ('itemText = ', itemText)
@@ -131,6 +132,7 @@ class App(tk.Frame):
         self._canvas.configure(width=width, height=height)
 
         # Position canvas-textbox in Canvas
+        print(f"x : {x} , y : {y} , height : {height} , width :{width} , cor : {(width-(textw-fudgeColumnx))/2.0} , cor : {height/2}" )
         print('self._canvas.coords(self._canvas.text) = ',
               self._canvas.coords(self._canvas.text))
         if column == '#0':
@@ -143,7 +145,8 @@ class App(tk.Frame):
                                 height/2)
 
         # Update value of canvas-textbox with the value of the selected cell. 
-        self._canvas.itemconfigure(self._canvas.text, text=self.cell_value)
+        # self._canvas.configure(bg='cyan')
+        self._canvas.itemconfigure(self._canvas.text, text=self.cell_value )
 
         # Overlay Canvas over Treeview cell
         self._canvas.place(in_=parent, x=x, y=y)
@@ -154,3 +157,84 @@ if __name__ == "__main__":
     window = tk.Tk()
     app = App(window)
     window.mainloop()
+
+# import tkinter as tk
+# from tkinter import ttk
+# from random import choice
+
+# # colors = ["red", "green", "black", "blue", "white", "yellow", "orange", "pink", "grey", "purple", "brown"]
+# # def recolor():
+# #     for child in tree.get_children():
+# #         print("Child : " , tree.item(child))
+# #         picked = choice(colors)
+# #         tree.item(child, tags=(picked , 'red' , 'green'), values=(picked ,'red' , 'green'))
+# #     for color in colors:
+# #         tree.tag_configure(color, background=color)
+# #     # tree.tag_configure("red", background="red")
+
+
+# # root = tk.Tk()
+
+# # tree=ttk.Treeview(root)
+
+
+# # tree["columns"]=("one","two","three")
+# # tree.column("#0", width=100, minwidth=30, stretch=tk.NO)
+# # tree.column("one", width=150, minwidth=50, stretch=tk.NO)
+# # tree.column("two", width=150, minwidth=50, stretch=tk.NO)
+# # tree.column("three", width=150, minwidth=50, stretch=tk.NO)
+
+# # tree.heading("#0",text="0",anchor=tk.W)
+# # tree.heading("one", text="1",anchor=tk.W)
+# # tree.heading("two", text="2",anchor=tk.W)
+# # tree.heading("three", text="3",anchor=tk.W)
+
+# # for i in range(10):
+# #     tree.insert("", i, text="Elem"+str(i), values=("none" , "none" , 'none') , tags=('red' , 'purple' , "green"))
+
+# # tree.pack(side=tk.TOP,fill=tk.X)
+
+
+# # b = tk.Button(root, text="Change", command=recolor)
+# # b.pack()
+
+
+# # root.mainloop()
+
+# # if __name__ == '__main__':
+# #     root = tk.Tk()
+# #     frame = tk.Frame(root)
+
+# #     tree = ttk.Treeview(frame.master, columns=("Name", "Hex Code"), show="headings")
+# #     tree.heading('Name', text="Name")
+# #     tree.heading('Hex Code', text="Hex Code")
+
+# #     tree.pack()
+# #     dct = {"red":"#ff0000",
+# #            "green":"#00ff00",
+# #            "pink":"#ff1493",
+# #            "teal":"#00cece"}
+
+# #     for key, value in dct.items():
+# #         tree.insert("", "end",tag=key, values=(key,value))
+# #         tree.tag_configure(tagname=key, background=value)
+        
+
+# #     root.mainloop()
+
+# if __name__ == '__main__':
+#     root = tk.Tk()
+#     frame = tk.Frame(root)
+
+#     tree = ttk.Treeview(frame.master, columns=("Name", "Hex Code"), show="headings")
+#     tree.heading('Name', text="Name")
+#     tree.heading('Hex Code', text="Hex Code")
+
+#     tree.pack()
+
+#     tree.insert('', 'end', values=("red","#ff0000"))
+#     tree.insert('', 'end', values=("green","#00ff00"))
+#     tree.insert('', 'end', values=("pink","#ff1493"))
+#     tree.insert('', 'end', values=("teal","#00cece"))
+
+#     root.mainloop()

@@ -1,9 +1,11 @@
 from tkinter import *
+from tkinter.font import Font
 from tkinter.ttk import * 
 from tkinter.messagebox import *
 import os 
 from utility import *
 import numpy as np
+import time
 from websocket import create_connection
 from threading import Thread
 
@@ -14,6 +16,7 @@ new_df = pd.DataFrame()
 new_df1 = pd.DataFrame()
 new_df2 = pd.DataFrame()
 new_df3 = pd.DataFrame()
+canvasList=dict()
 
 idx = 0
 DataDict = dict()
@@ -357,25 +360,7 @@ class AddContract(Toplevel):
     def sendToken(self , tokenList):
         for token in tokenList:
             client.send(f'{sessionID}_rahul@thecodesure.com_{token}')
-    #     client = WebSocketClient()
-        
-        # loop = asyncio.new_event_loop()
-        # asyncio.set_event_loop(loop)
-        # loop = asyncio.get_event_loop()
-        # connection = loop.run_until_complete(client.connect())
-        # # Start listener and heartbeat 
-        # tasks = [
-        #     asyncio.ensure_future(client.heartbeat(connection , tokenNo)),
-        #     asyncio.ensure_future(client.receiveMessage(connection, tokenNo, DataGrid ,idx , DataDict)),
-        # ]
 
-        # try:
-        #     loop.run_until_complete(asyncio.wait(tasks) )
-        # except Exception as e  :
-        #     print(f"Coroutine error {e}")
-        # finally:
-        #     loop.close()
-        #     loop.stop()
 
     def add(self):
         try:
@@ -388,7 +373,6 @@ class AddContract(Toplevel):
         global new_df3
         if new_df3.empty:
             showerror("Try Again")
-            # self.after(3000)
             self.destroy()
 
         else:
@@ -413,13 +397,19 @@ class AddContract(Toplevel):
             global DataDict
             for i in range(len(script_list)):
                 self.DataGrid.insert(parent="" , index=token_list[i] ,iid = token_list[i], values=( token_list[i] ,script_list[i] ,inst ,exp,iType,0 ,0,0 ,0,0 ,0,0 ,0,0 ,0,0 ,0,0 ,0 ,0))
+                _canvas = Canvas(self.DataGrid,background="#1818b8",
+                                 borderwidth=0,
+                                 highlightthickness=0)
+
+                _canvas.text = _canvas.create_text(0,0,fill='#050505' , anchor='nw')
+                canvasList.update({token_list[i]:_canvas})
                 idx+=1
 
             self.sendToken(token_list)
 
             self.destroy()
 
-def recvMessage(DataGrid):
+def recvMessage(DataGrid , _canvasList , _font):
     while True:  
         try:
             message = client.recv()
@@ -431,16 +421,32 @@ def recvMessage(DataGrid):
             for i in range(0,len(message),4):
                 val.append(int.from_bytes(message[i:i+4] ,'little'))
 
-            print(val , n)
+            # print(val , n)
             for i in range(n):
                 val[i*16:(i*16)+16]
                 idx =i*16
-                print("CHILDS are : " , child , " and value at index " , idx , " is " , val[idx])
+                # print("CHILDS are : " , child , " and value at index " , idx , " is " , val[idx])
 
                 if str(val[idx]) in child:
-                    # print("Entered in else condition")
-                    token , name ,inst ,exp , tp= DataGrid.item(str(val[idx]) , 'values')[0:5]
-                    print(f"Token : {token} , Name = {name} , inst : {inst} , exp: {exp} , tp : {tp}")
+                    item = DataGrid.item(str(val[idx]))
+                    _canvas = canvasList[val[idx]]
+                    _canvas.place_forget()
+                    bbox = DataGrid.bbox(str(val[idx]) , '#6')
+                    # print(f"BBox : {bbox} , val[idx]:{str(val[idx])}")
+                    if bbox == "":
+                        continue
+                    x ,y , height , width = bbox
+
+                    fudgeTreeColumnx = 19 #Determined by trial & error
+                    fudgeColumnx = 15     #Determined by trial & error
+                    _canvas.configure(width=height, height=width)
+                    token , name ,inst ,exp , tp= item['values'][0:5]
+                    if (val[idx+10]/100 > val[idx+1]/100):
+                        _canvas.configure(bg='#b30517')
+                    elif  val[idx+10]/100 < val[idx+1]/100:
+                        _canvas.configure(bg='#2aa112')
+                    else :
+                        _canvas.configure(bg="#e6f8fa")
                     DataGrid.item(str(val[idx]) ,values=(token, name , inst, exp , tp,
                         val[idx+1]/100 , 
                         val[idx+2], 
@@ -457,9 +463,14 @@ def recvMessage(DataGrid):
                         val[idx+13] /100,
                         val[idx+14]/100,
                         val[idx+15]))
+
+                    textw = _font.measure(val[idx+1]/100)
+                    _canvas.coords(_canvas.text,15,3)
+                    _canvas.itemconfigure(_canvas.text, text= str(val[idx+1]/100))
+                    _canvas.place(in_=DataGrid , x=x , y=y)
         except Exception as e:
             client.send(f'{sessionID}_rahul@thecodesure.com_147258')
-            # print('receiveMessage Connection with server closed: ' , e)
+            print('receiveMessage Connection with server closed: ' , e)
             break
         
 class RootFrames(Frame):
@@ -536,6 +547,10 @@ class RootFrames(Frame):
 
         self.DataGrid.pack(side='left')        
         self.DataGrid.bind("<Double-1>",self.onDoubleClick)
+        # self.DataGrid._redBG = '#8f0303'
+        # self.DataGrid._greenBG = "#168707"
+        self._font = Font()
+
         self.contract_tab.pack()
         self.display_tab.pack()
 
@@ -553,7 +568,7 @@ class RootFrames(Frame):
         client.send(f'{sessionID}_rahul@thecodesure.com_159753')
         # client.send(f'{sessionID}_rahul@thecodesure.com_53179')
 
-        myThread = Thread(target=recvMessage , args=[self.DataGrid] )
+        myThread = Thread(target=recvMessage , args=[self.DataGrid , canvasList , self._font] )
         myThread.start()
         print('Thread Started')
 
