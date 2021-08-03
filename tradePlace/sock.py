@@ -10,7 +10,6 @@ sessionID = client.recv()
 print(sessionID)
 
 client.send(f'{sessionID}_rahul@thecodesure.com_159753')
-# client.send(f'{sessionID}_rahul@thecodesure.com_147258')
 
 run = True
 
@@ -45,18 +44,16 @@ t1 = Thread(target=recvMessage)
 t1.start()
 
 try:
-    while True :
+    while run :
         string = input(">>> ")
-        if string == 'EXIT':
+        if string.lower() == 'exit':
+            run = False
             client.send(f"{sessionID}_rahul@thecodesure.com_147258")
-            # client.close()
             print("Exit Successfully")
         token = string.split(",")
         addToken(token)
+    sys.exit()
 
 except:
-    t1.join()
-    client.send(f"{sessionID}_rahul@thecodesure.com_147258")
-    print("Termination send")
-    client.close()
-    print("Except Exit")
+    run = False
+    sys.exit()

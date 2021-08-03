@@ -19,7 +19,6 @@ new_df2 = pd.DataFrame()
 new_df3 = pd.DataFrame()
 canvasList=dict()
 
-myThread = None
 idx = 0
 DataDict = dict()
 script_list =sorted(df['Script'].dropna().unique().tolist())
@@ -31,12 +30,6 @@ lst = [['Script Name'  ,'Price'  ]]
 script_name,  val = '' , 0 
 client =None
 sessionID = ""
-
-# client = WebSocketClient()
-# loop = asyncio.new_event_loop()
-# asyncio.set_event_loop(loop)
-# loop = asyncio.get_event_loop()
-# connection = loop.run_until_complete(client.connect())
 
 class FuturesFrame(LabelFrame):
     def __init__(self , container , seg_selec):
@@ -121,7 +114,6 @@ class FuturesFrame(LabelFrame):
         global new_df3
         try:
             new_df3 = new_df[new_df['Expiry']==self.exp]
-            # print(new_df3['Script'])
         except :
             showerror("Select previous options")
 
@@ -312,7 +304,6 @@ class OptionsFrame(LabelFrame):
 class AddContract(Toplevel):
     def __init__(self,container ):
         super().__init__(container)
-        # self.DataDict = dict()
         self.geometry('560x200+300+300')
         self.title('Add Contract')
         self.resizable(False , False)
@@ -380,11 +371,7 @@ class AddContract(Toplevel):
 
         else:
             new_df3 = new_df3.reset_index(drop=True)
-            
             self.rootNotebook = self.master.winfo_children()[1]
-            # print(self.rootNotebook.winfo_children()[1].winfo_children())
-            # self.yScrollbar = self.rootNotebook.winfo_children()[1].winfo_children()[1]
-            # self.xscrollbar = self.rootNotebook.winfo_children()[1].winfo_children()[2]
             self.DataGrid = self.rootNotebook.winfo_children()[1].winfo_children()[0]
             token_list = new_df3['Token No'].to_list()
             script_list = new_df3['Script'].to_list()
@@ -405,53 +392,42 @@ class AddContract(Toplevel):
                 _canvas = Canvas(self.DataGrid,background="#1818b8",
                                  borderwidth=0,
                                  highlightthickness=0)
-                # _canvas.configure(xscrollcommand=self.xscrollbar , yscrollcommand=self.yScrollbar)
                 _canvas.text = _canvas.create_text(0,0,fill='#050505' , anchor='nw')
                 canvasList.update({token_list[i]:_canvas})
                 idx+=1
 
             self.sendToken(token_list)
             new_df3 = pd.DataFrame()
-
             self.destroy()
 
 run = True
-
 def recvMessage(DataGrid , _canvasList , _font):
     while run:  
         try:
             message = client.recv()
             if type(message)== str:
                 pass
-                # showerror(f"{message}")
             else :
                 n = int.from_bytes(message[:2],'little')
                 message = message[2:]
                 child = DataGrid.get_children()
-                # print(f"Child are : {child}")
 
                 val = []
                 for i in range(0,len(message),4):
                     val.append(int.from_bytes(message[i:i+4] ,'little'))
-
-                # print(val , n)
                 for i in range(n):
                     val[i*16:(i*16)+16]
                     idx =i*16
-                    # print("CHILDS are : " , child , " and value at index " , idx , " is " , val[idx])
 
                     if str(val[idx]) in child:
                         item = DataGrid.item(str(val[idx]))
                         _canvas = canvasList[val[idx]]
                         _canvas.place_forget()
                         bbox = DataGrid.bbox(str(val[idx]) , '#6')
-                        # print(f"BBox : {bbox} , val[idx]:{str(val[idx])}")
                         if bbox == "":
                             continue
                         x ,y , height , width = bbox
 
-                        # fudgeTreeColumnx = 19 #Determined by trial & error
-                        # fudgeColumnx = 15     #Determined by trial & error
                         _canvas.configure(width=height, height=width)
                         token , name ,inst ,exp , tp= item['values'][0:5]
                         if (val[idx+10]/100 > val[idx+1]/100):
@@ -460,32 +436,16 @@ def recvMessage(DataGrid , _canvasList , _font):
                             _canvas.configure(bg='#2aa112')
                         else :
                             _canvas.configure(bg="#e6f8fa")
-                        DataGrid.item(str(val[idx]) ,values=(token, name , inst, exp , tp,
-                            val[idx+1]/100 , 
-                            val[idx+2], 
-                            val[idx+3]/100 ,
-                            val[idx+4] ,
-                            val[idx+5] ,
-                            val[idx+6] ,
-                            val[idx+7]/100 ,
-                            val[idx+8]/100 ,
-                            val[idx+9]/100,
-                            val[idx+10]/100 ,
-                            (datetime.datetime.fromtimestamp(int(datetime.datetime(1980, 1,1,0,0).timestamp()) + 
-                                val[idx+11])).strftime('%d-%m-%Y') ,
-                            val[idx+13] /100,
-                            val[idx+14]/100,
-                            val[idx+15]))
+                        DataGrid.item(str(val[idx]) ,values=(token, name , inst, exp , tp,val[idx+1]/100 ,val[idx+2],val[idx+3]/100 ,val[idx+4] ,val[idx+5] ,val[idx+6] ,val[idx+7]/100 ,val[idx+8]/100 ,val[idx+9]/100,val[idx+10]/100 ,
+                            (datetime.datetime.fromtimestamp(int(datetime.datetime(1980, 1,1,0,0).timestamp()) + val[idx+11])).strftime('%d-%m-%Y') ,val[idx+13] /100,val[idx+14]/100,val[idx+15]))
 
                         textw = _font.measure(val[idx+1]/100)
                         _canvas.coords(_canvas.text,15,3)
                         _canvas.itemconfigure(_canvas.text, text= str(val[idx+1]/100))
                         _canvas.place(in_=DataGrid , x=x , y=y)
         except Exception as e:
-            # run = False 
-            # if showerror(f"{e}"):
-            sys.exit()
-            # print('receiveMessage Connection with server closed: ' , e)
+            # sys.exit()
+            print('receiveMessage Connection with server closed: ' , e)
             break
 
     sys.exit()
@@ -563,7 +523,6 @@ class RootFrames(Frame):
         self.DataGrid.heading('Spot', anchor=CENTER, text='Spot')
 
         self.DataGrid.pack(side='left')        
-        # self.DataGrid.bind("<Double-1>",self.onDoubleClick)
         self._font = Font()
 
         self.contract_tab.pack()
@@ -578,20 +537,9 @@ class RootFrames(Frame):
         global sessionID
         client = create_connection(self.url ,timeout=21650000)
         sessionID = client.recv()
-        print(sessionID)
-
         client.send(f'{sessionID}_rahul@thecodesure.com_159753')
-        
-        # client.send(f'{sessionID}_rahul@thecodesure.com_53179')
-        global myThread
-
         myThread = Thread(target=recvMessage , args=[self.DataGrid , canvasList , self._font] )
         myThread.start()
-        print('Thread Started')
-
-    # def onDoubleClick(self,event):
-    #     item =self.DataGrid.selection()#identify_column(event.x)
-    #     print("Selected item : ",item)#self.DataGrid.item(item, 'text') )
 
 class App(Tk):
     def __init__(self):
