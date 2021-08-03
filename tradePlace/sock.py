@@ -1,14 +1,18 @@
+from datetime import time
 from websocket import WebSocketApp , create_connection
-from threading import Thread , Lock
+from threading import Thread
+import sys
 
 url = "ws://122.160.79.135:10771/Broadcast"
 
-client = create_connection(url)
+client = create_connection(url , timeout=30000)
 sessionID = client.recv()
 print(sessionID)
 
 client.send(f'{sessionID}_rahul@thecodesure.com_159753')
 # client.send(f'{sessionID}_rahul@thecodesure.com_147258')
+
+run = True
 
 def recvMessage():
     while True:
@@ -29,8 +33,8 @@ def recvMessage():
                     print("Packet No. " ,i," contains ",val[i*16:(i*16)+16])
             
         except Exception as e:
-            client.send(f"{sessionID}_rahul@thecodesure.com_147258")
-            print("Connection deactivated")
+            break
+    sys.exit()
             
 
 def addToken(token):
@@ -45,7 +49,7 @@ try:
         string = input(">>> ")
         if string == 'EXIT':
             client.send(f"{sessionID}_rahul@thecodesure.com_147258")
-            client.close()
+            # client.close()
             print("Exit Successfully")
         token = string.split(",")
         addToken(token)
