@@ -306,7 +306,6 @@ class AddContract(Toplevel):
         self.geometry('560x200+300+300')
         self.title('Add Contract')
         self.resizable(False , False)
-        self.client = client
         options = {'padx': 10, 'pady': 5}
 
         self.var = StringVar()
