@@ -17,7 +17,6 @@ new_df = pd.DataFrame()
 new_df1 = pd.DataFrame()
 new_df2 = pd.DataFrame()
 new_df3 = pd.DataFrame()
-canvasList=dict()
 
 idx = 0
 DataDict = dict()
@@ -388,11 +387,6 @@ class AddContract(Toplevel):
             global DataDict
             for i in range(len(script_list)):
                 self.DataGrid.insert(parent="" , index=token_list[i] ,iid = token_list[i], values=( token_list[i] ,script_list[i] ,inst ,exp,iType,0 ,0,0 ,0,0 ,0,0 ,0,0 ,0,0 ,0,0 ,0 ,0))
-                _canvas = Canvas(self.DataGrid,background="#1818b8",
-                                 borderwidth=0,
-                                 highlightthickness=0)
-                _canvas.text = _canvas.create_text(0,0,fill='#050505' , anchor='nw')
-                canvasList.update({token_list[i]:_canvas})
                 idx+=1
 
             self.sendToken(token_list)
@@ -400,7 +394,7 @@ class AddContract(Toplevel):
             self.destroy()
 
 run = True
-def recvMessage(DataGrid , _canvasList , _font , container):
+def recvMessage(DataGrid ):
     while run:  
         try:
             message = client.recv()
@@ -414,37 +408,18 @@ def recvMessage(DataGrid , _canvasList , _font , container):
                 val = []
                 for i in range(0,len(message),4):
                     val.append(int.from_bytes(message[i:i+4] ,'little'))
+
                 for i in range(n):
                     val[i*16:(i*16)+16]
                     idx =i*16
 
                     if str(val[idx]) in child:
                         item = DataGrid.item(str(val[idx]))
-                        _canvas = canvasList[val[idx]]
-                        _canvas.place_forget()
-                        bbox = DataGrid.bbox(str(val[idx]) , '#6')
-                        if bbox == "":
-                            continue
-                        x ,y , height , width = bbox
-
-                        _canvas.configure(width=height, height=width)
                         token , name ,inst ,exp , tp= item['values'][0:5]
-                        if (val[idx+10]/100 > val[idx+1]/100):
-                            _canvas.configure(bg='#b30517')
-                        elif  val[idx+10]/100 < val[idx+1]/100:
-                            _canvas.configure(bg='#2aa112')
-                        else :
-                            _canvas.configure(bg="#e6f8fa")
                         DataGrid.item(str(val[idx]) ,values=(token, name , inst, exp , tp,val[idx+1]/100 ,val[idx+2],val[idx+3]/100 ,val[idx+4] ,val[idx+5] ,val[idx+6] ,val[idx+7]/100 ,val[idx+8]/100 ,val[idx+9]/100,val[idx+10]/100 ,
-                            (datetime.datetime.fromtimestamp(int(datetime.datetime(1980, 1,1,0,0).timestamp()) + val[idx+11])).strftime('%d-%m-%Y') ,val[idx+13] /100,val[idx+14]/100,val[idx+15]))
-
-                        textw = _font.measure(val[idx+1]/100)
-                        _canvas.coords(_canvas.text,15,3)
-                        _canvas.itemconfigure(_canvas.text, text= str(val[idx+1]/100))
-                        _canvas.place(in_=DataGrid , x=x , y=y)                      
+                            (datetime.datetime.fromtimestamp(int(datetime.datetime(1980, 1,1,0,0).timestamp()) + val[idx+11])).strftime('%d-%m-%Y') ,val[idx+12] /100,val[idx+13]/100,val[idx+14] ,val[idx+15] ))            
                         
         except Exception as e:
-            # sys.exit()
             if showerror("Error Message" ,e):
                 try: 
                     client.send(f'{sessionID}_rahul@thecodesure.com_147258')
@@ -491,7 +466,7 @@ class RootFrames(Frame):
         self.DataGrid.column('LTP', anchor=CENTER, width=80)
         self.DataGrid.column('LTQ', anchor=CENTER, width=80)
         self.DataGrid.column('ATP', anchor=CENTER, width=80)
-        self.DataGrid.column('VolTraded', anchor=CENTER, width=80)
+        self.DataGrid.column('VolTraded', anchor=CENTER, width=100)
         self.DataGrid.column('BuyQty', anchor=CENTER, width=80)
         self.DataGrid.column('SellQty', anchor=CENTER, width=80)
         self.DataGrid.column('Open', anchor=CENTER, width=80)
@@ -529,8 +504,10 @@ class RootFrames(Frame):
 
         self.DataGrid.pack(side='left')        
         self._font = Font()
-        self.optionMenu = Menu(self.DataGrid ,tearoff=0 , activebackground='#ccd1d9' )
-        self.optionMenu.add_command(label="Hide" , command=self.hideCols)
+        self.optionMenu = Menu(self.DataGrid ,tearoff=0 , activebackground='#5e6570' )
+        self.optionMenu.add_command(label="Hide selected column" , command=self.hideCol)
+        self.optionMenu.add_command(label='Delete selected row' , command=self.delrow)
+        self.optionMenu.add_separator()
         self.optionMenu.add_command(label="Show All" , command=self.showCols)
         self.copyCols = [c for c in self.DataGrid['columns']]
 
@@ -547,12 +524,16 @@ class RootFrames(Frame):
         client = create_connection(self.url ,timeout=21650000)
         sessionID = client.recv()
         client.send(f'{sessionID}_rahul@thecodesure.com_159753')
-        myThread = Thread(target=recvMessage , args=[self.DataGrid , canvasList , self._font , self.display_tab] )
+        myThread = Thread(target=recvMessage , args=[self.DataGrid] )
         myThread.start()
 
-    def hideCols(self):
+    def hideCol(self):
         self.copyCols.remove(self.copyCols[self.hCol])
         self.DataGrid['displaycolumns'] = self.copyCols
+    
+    def delrow(self):
+        if self.row:
+            self.DataGrid.delete(self.row)
 
     def showCols(self):
         self.DataGrid['displaycolumns'] = '#all'
@@ -562,6 +543,7 @@ class RootFrames(Frame):
             self.optionMenu.tk_popup(event.x_root , event.y_root)
             hcol = self.DataGrid.identify_column(event.x)
             self.hCol = int(hcol.split('#')[1])-1
+            self.row = self.DataGrid.identify_row(event.y)
         finally:
             self.optionMenu.grab_release()
 
