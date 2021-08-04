@@ -366,7 +366,7 @@ class AddContract(Toplevel):
 
         global new_df3
         if new_df3.empty:
-            showerror("Try Again")
+            showerror("Error" ,"No Scipt selected")
             self.destroy()
 
         else:
@@ -379,8 +379,7 @@ class AddContract(Toplevel):
 
             if new_df3['Type'].unique() !='EQ':
                 inst =new_df3['Instrument'].unique()[0]
-                exp = new_df3['Expiry'].unique()[0]
-                           
+                exp = str(new_df3['Expiry'].unique()[0]).split("T")[0]
             else :
                 inst = "XX"
                 exp = 'XX'
@@ -401,7 +400,7 @@ class AddContract(Toplevel):
             self.destroy()
 
 run = True
-def recvMessage(DataGrid , _canvasList , _font):
+def recvMessage(DataGrid , _canvasList , _font , container):
     while run:  
         try:
             message = client.recv()
@@ -442,11 +441,16 @@ def recvMessage(DataGrid , _canvasList , _font):
                         textw = _font.measure(val[idx+1]/100)
                         _canvas.coords(_canvas.text,15,3)
                         _canvas.itemconfigure(_canvas.text, text= str(val[idx+1]/100))
-                        _canvas.place(in_=DataGrid , x=x , y=y)
+                        _canvas.place(in_=DataGrid , x=x , y=y)                      
+                        
         except Exception as e:
             # sys.exit()
-            print('receiveMessage Connection with server closed: ' , e)
-            break
+            if showerror("Error Message" ,e):
+                try: 
+                    client.send(f'{sessionID}_rahul@thecodesure.com_147258')
+                    sys.exit()
+                except:
+                    sys.exit()
 
     sys.exit()
         
@@ -466,7 +470,7 @@ class RootFrames(Frame):
         self.show_open_contracts = Frame(self.contract_tab)
         self.show_open_contracts.grid(column=0 ,columnspan=15, row=1 , **options)
 
-        self.DataGrid = Treeview(self.display_tab ,selectmode='browse', height=self.display_tab.winfo_screenheight())
+        self.DataGrid = Treeview(self.display_tab , height=self.display_tab.winfo_screenheight())
 
         self.scrollBarY = Scrollbar(self.display_tab  , orient='vertical' , command=self.DataGrid.yview)
         self.scrollBarY.pack(side='right', fill="y" )
@@ -521,9 +525,14 @@ class RootFrames(Frame):
         self.DataGrid.heading('Ask', anchor=CENTER, text='Ask')
         self.DataGrid.heading('OI', anchor=CENTER, text='OI')
         self.DataGrid.heading('Spot', anchor=CENTER, text='Spot')
+        self.DataGrid.bind("<Button-3>" , self.gridOptions)
 
         self.DataGrid.pack(side='left')        
         self._font = Font()
+        self.optionMenu = Menu(self.DataGrid ,tearoff=0 , activebackground='#ccd1d9' )
+        self.optionMenu.add_command(label="Hide" , command=self.hideCols)
+        self.optionMenu.add_command(label="Show All" , command=self.showCols)
+        self.copyCols = [c for c in self.DataGrid['columns']]
 
         self.contract_tab.pack()
         self.display_tab.pack()
@@ -538,8 +547,23 @@ class RootFrames(Frame):
         client = create_connection(self.url ,timeout=21650000)
         sessionID = client.recv()
         client.send(f'{sessionID}_rahul@thecodesure.com_159753')
-        myThread = Thread(target=recvMessage , args=[self.DataGrid , canvasList , self._font] )
+        myThread = Thread(target=recvMessage , args=[self.DataGrid , canvasList , self._font , self.display_tab] )
         myThread.start()
+
+    def hideCols(self):
+        self.copyCols.remove(self.copyCols[self.hCol])
+        self.DataGrid['displaycolumns'] = self.copyCols
+
+    def showCols(self):
+        self.DataGrid['displaycolumns'] = '#all'
+
+    def gridOptions(self , event):
+        try:
+            self.optionMenu.tk_popup(event.x_root , event.y_root)
+            hcol = self.DataGrid.identify_column(event.x)
+            self.hCol = int(hcol.split('#')[1])-1
+        finally:
+            self.optionMenu.grab_release()
 
 class App(Tk):
     def __init__(self):
