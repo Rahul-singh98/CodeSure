@@ -18,6 +18,8 @@ new_df1 = pd.DataFrame()
 new_df2 = pd.DataFrame()
 new_df3 = pd.DataFrame()
 
+expression = None
+
 idx = 0
 DataDict = dict()
 script_list =sorted(df['Script'].dropna().unique().tolist())
@@ -396,6 +398,7 @@ run = True
 def recvMessage(DataGrid ):
     while run:  
         try:
+            global expression
             message = client.recv()
             if type(message)== str:
                 pass
@@ -413,10 +416,17 @@ def recvMessage(DataGrid ):
                     idx =i*16
 
                     if str(val[idx]) in child:
-                        item = DataGrid.item(str(val[idx]))
-                        token , name ,inst ,exp , tp= item['values'][0:5]
-                        DataGrid.item(str(val[idx]) ,values=(token, name , inst, exp , tp,val[idx+1]/100 ,val[idx+2],val[idx+3]/100 ,val[idx+4] ,val[idx+5] ,val[idx+6] ,val[idx+7]/100 ,val[idx+8]/100 ,val[idx+9]/100,val[idx+10]/100 ,
-                            (datetime.datetime.fromtimestamp(int(datetime.datetime(1980, 1,1,0,0).timestamp()) + val[idx+11])).strftime('%d-%m-%Y') ,val[idx+12] /100,val[idx+13]/100,val[idx+14] ,val[idx+15] ))            
+                        data = DataGrid.item(str(val[idx]))['values']
+                        token , name ,inst ,exp , tp= data[0:5]
+                            
+                        if expression:
+                            DataGrid.item(str(val[idx]) ,values=(token, name , inst, exp , tp,val[idx+1]/100 ,val[idx+2],val[idx+3]/100 ,val[idx+4] ,val[idx+5] ,val[idx+6] ,val[idx+7]/100 ,val[idx+8]/100 ,val[idx+9]/100,val[idx+10]/100 ,
+                                (datetime.datetime.fromtimestamp(int(datetime.datetime(1980, 1,1,0,0).timestamp()) + val[idx+11])).strftime('%d-%m-%Y') ,val[idx+12] /100,val[idx+13]/100,val[idx+14] ,val[idx+15] ,
+                                eval(expression.lower() , {'ltp':data[5] ,'ltq':data[6],'atp':data[7] , 'voltraded':data[8] ,'buyqty':data[9] ,'sellqty':data[10] , 'open':data[11] , "high":data[12] , "low":data[13] , "close":data[14],'bid':data[16] ,
+                                    'ask':data[17] ,'oi':data[18] ,'spot':data[19]})))
+                        else :
+                            DataGrid.item(str(val[idx]) ,values=(token, name , inst, exp , tp,val[idx+1]/100 ,val[idx+2],val[idx+3]/100 ,val[idx+4] ,val[idx+5] ,val[idx+6] ,val[idx+7]/100 ,val[idx+8]/100 ,val[idx+9]/100,val[idx+10]/100 ,
+                                (datetime.datetime.fromtimestamp(int(datetime.datetime(1980, 1,1,0,0).timestamp()) + val[idx+11])).strftime('%d-%m-%Y') ,val[idx+12] /100,val[idx+13]/100,val[idx+14] ,val[idx+15] ))
                         
         except Exception as e:
             if showerror("Error Message" ,e):
@@ -506,6 +516,7 @@ class RootFrames(Frame):
         self.optionMenu = Menu(self.DataGrid ,tearoff=0 , activebackground='#5e6570' )
         self.optionMenu.add_command(label="Hide selected column" , command=self.hideCol)
         self.optionMenu.add_command(label='Delete selected row' , command=self.delrow)
+        self.optionMenu.add_command(label='Add Expression' , command=self.showEntry)
         self.optionMenu.add_separator()
         self.optionMenu.add_command(label="Show All" , command=self.showCols)
         self.copyCols = [c for c in self.DataGrid['columns']]
@@ -525,6 +536,64 @@ class RootFrames(Frame):
         client.send(f'{sessionID}_rahul@thecodesure.com_159753')
         myThread = Thread(target=recvMessage , args=[self.DataGrid] )
         myThread.start()
+
+    
+    def showEntry(self):
+        self.entryData = StringVar()
+        self.entryColName = StringVar()
+        top = Toplevel(self)
+        top.geometry('300x120')
+        lbl1 = Label(top , text='Column Name : ')
+        lbl2 = Label(top , text='Expression : ')
+
+        entry = Entry(top , textvariable=self.entryData)
+        col = Entry(top , textvariable=self.entryColName)
+        button = Button(top , text="submit" , command=lambda : self.submit(top))
+
+        lbl1.grid(row=0 , column=0 , padx=5 , pady=5)
+        lbl2.grid(row=1 , column=0 , padx=5 , pady=5)
+        col.grid(row=0 , column=1 , padx=5 , pady=5)
+        entry.grid(row=1 , column=1 , padx=5 , pady=5)
+        button.grid(row=2 , column=0 , columnspan=2, padx=5 , pady=5)
+        
+
+    def submit(self ,top ):
+        if self.entryColName.get():
+            if self.entryData.get():
+                self.add_column([f"{self.entryColName.get()}"] , anchor='center')
+            else :
+                showerror("Error" , "No Expression to evaluate")
+        else : 
+            showerror("Error" , "Column name is empty")
+        top.destroy()
+
+
+    def add_column(self, columns, **kwargs):
+        try:
+            global expression
+            eval(self.entryData.get().lower() , {'ltp':0 ,'ltq':0,'atp':0 , 'voltraded':0,'buyqty':0 ,'sellqty':0 , 'open':0, "high":0, "low":0 , "close":0,'bid':0 ,
+                                'ask':0 ,'oi':0 ,'spot':0})
+            current_columns = list(self.DataGrid['columns'])
+            current_columns = {key:self.DataGrid.heading(key) for key in current_columns}
+
+            self.DataGrid['columns'] = list(current_columns.keys()) + list(columns)
+            for key in columns:
+                self.DataGrid.heading(key, text=key, **kwargs)
+
+            for key in current_columns:
+                state = current_columns[key].pop('state')
+                self.DataGrid.heading(key, **current_columns[key] )
+
+            expression = self.entryData.get()
+            # for i in self.DataGrid.get_children():
+            #     item = self.DataGrid.item(i)
+            #     data = item['values']
+            #     self.DataGrid.item(i , values = (data[0], data[1] , data[2] , data[3] , data[4], data[5] , data[6] , data[7] , data[8], data[9] , data[10] , data[11] , data[12], data[13] , data[14] , data[15] , data[16], data[17] , data[18] , data[19] , 
+            #                     eval(self.entryData.get().lower() , {'ltp':data[5] ,'ltq':data[6],'atp':data[7] , 'voltraded':data[8] ,'buyqty':data[9] ,'sellqty':data[10] , 'open':data[11] , "high":data[12] , "low":data[13] , "close":data[14],'bid':data[16] ,
+            #                         'ask':data[17] ,'oi':data[18] ,'spot':data[19]})))
+
+        except Exception as e:
+            showerror("Error" , f"e")
 
     def hideCol(self):
         self.copyCols.remove(self.copyCols[self.hCol])
@@ -563,9 +632,8 @@ class App(Tk):
             run  = False
             try:
                 client.send(f'{sessionID}_rahul@thecodesure.com_147258') 
-                if showinfo("Server connection closed "):  
+                if showinfo("Info","Server connection closed "):  
                     self.destroy()
-
             except :
                 self.destroy()
         
