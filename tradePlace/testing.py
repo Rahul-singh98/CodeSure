@@ -7,6 +7,7 @@ class rootFrame(Frame):
     def __init__(self , parent):
         super().__init__()
         self.tree = Treeview(parent)
+        self.carryOn = True
         self.tree["columns"] = ("Open", "High", "Low" ,"Close")
 
         self.tree.column("#0",   width=100, anchor='center')
@@ -75,7 +76,12 @@ class rootFrame(Frame):
     def submit(self ,top ):
         if self.entryColName.get():
             if self.entryData.get():
-                self.add_column([f"{self.entryColName.get()}"] , anchor='center')
+                if self.carryOn:
+                    print(self.carryOn)
+                    self.add_column([f"{self.entryColName.get()}"] , anchor='center')
+                    self.carryOn = False
+                else :
+                    showinfo("Info" , "Only 1 Expression is allowed")
             else :
                 showerror("Error" , "No Expression to evaluate")
         else : 

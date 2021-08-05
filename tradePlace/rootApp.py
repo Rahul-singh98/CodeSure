@@ -422,8 +422,8 @@ def recvMessage(DataGrid ):
                         if expression:
                             DataGrid.item(str(val[idx]) ,values=(token, name , inst, exp , tp,val[idx+1]/100 ,val[idx+2],val[idx+3]/100 ,val[idx+4] ,val[idx+5] ,val[idx+6] ,val[idx+7]/100 ,val[idx+8]/100 ,val[idx+9]/100,val[idx+10]/100 ,
                                 (datetime.datetime.fromtimestamp(int(datetime.datetime(1980, 1,1,0,0).timestamp()) + val[idx+11])).strftime('%d-%m-%Y') ,val[idx+12] /100,val[idx+13]/100,val[idx+14] ,val[idx+15] ,
-                                eval(expression.lower() , {'ltp':data[5] ,'ltq':data[6],'atp':data[7] , 'voltraded':data[8] ,'buyqty':data[9] ,'sellqty':data[10] , 'open':data[11] , "high":data[12] , "low":data[13] , "close":data[14],'bid':data[16] ,
-                                    'ask':data[17] ,'oi':data[18] ,'spot':data[19]})))
+                                eval(expression.lower() , {'ltp':val[idx+1]/100 ,'ltq':val[idx+2],'atp':val[idx+3]/100 , 'voltraded':val[idx+4] ,'buyqty':val[idx+5] ,'sellqty':val[idx+6] , 'open':val[idx+7]/100 , "high":val[idx+8]/100 , "low":val[idx+9]/100 , "close":val[idx+10]/100,'bid':val[idx+12]/100 ,
+                                    'ask':val[idx+13]/100 ,'oi':val[idx+14] ,'spot':val[idx+15]})))
                         else :
                             DataGrid.item(str(val[idx]) ,values=(token, name , inst, exp , tp,val[idx+1]/100 ,val[idx+2],val[idx+3]/100 ,val[idx+4] ,val[idx+5] ,val[idx+6] ,val[idx+7]/100 ,val[idx+8]/100 ,val[idx+9]/100,val[idx+10]/100 ,
                                 (datetime.datetime.fromtimestamp(int(datetime.datetime(1980, 1,1,0,0).timestamp()) + val[idx+11])).strftime('%d-%m-%Y') ,val[idx+12] /100,val[idx+13]/100,val[idx+14] ,val[idx+15] ))
@@ -435,12 +435,12 @@ def recvMessage(DataGrid ):
                     sys.exit()
                 except:
                     sys.exit()
-
     sys.exit()
         
 class RootFrames(Frame):
     def __init__(self , container):
         super().__init__(container)
+        self.carryOn = True
         self.notebook = Notebook(container , width= container.winfo_screenwidth() , height=container.winfo_screenheight()-90)
         self.notebook.place(x=0 , y=0)
         self.contract_tab = Frame(self.notebook)
@@ -560,7 +560,11 @@ class RootFrames(Frame):
     def submit(self ,top ):
         if self.entryColName.get():
             if self.entryData.get():
-                self.add_column([f"{self.entryColName.get()}"] , anchor='center')
+                if self.carryOn:
+                    self.add_column([f"{self.entryColName.get()}"] , anchor='center')
+                    self.carryOn = False
+                else :
+                    showinfo("Info" , "Only 1 Expression is allowed")
             else :
                 showerror("Error" , "No Expression to evaluate")
         else : 
