@@ -8,15 +8,5 @@ client.login()
 end = datetime.datetime.now()
 start =end - datetime.timedelta(100)
 
-df=client.historical_data('N','C',1660,'15m',start,end)
+df=client.historical_data('N','C',999920000,'1d',start,end)
 print(df)
-
-
-# req_list=[
-#             { "Exch":"N","ExchType":"C","ScripCode":1660},
-            
-#             ]
-
-# dict1=client.Request_Feed('mf','s',req_list)
-
-# client.Streming_data(dict1)
