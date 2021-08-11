@@ -13,7 +13,11 @@ stringVar = None
 run = True
 cols = [i for i in range(27)]
 df = pd.read_csv('./0809AUTOTRD.txt' , names = cols)
-users = list()
+data = dict()
+price = dict()
+temp = dict()
+temp2 = dict()
+users = [i for i in df[17].unique()]
 
 class MyHandler(FileSystemEventHandler):
     def on_modified(self, event):
@@ -79,10 +83,6 @@ class App(Tk):
         if askokcancel("Quit" , "Are you sure you want to exit !!"):    
             global run 
             run  = False
-            # try:
-            #     if showinfo("Info","Server connection closed "):  
-            #         self.destroy()
-            # except :
             self.destroy()
 
 
