@@ -21,11 +21,11 @@ users = [i for i in df[17].unique()]
 
 class MyHandler(FileSystemEventHandler):
     def on_modified(self, event):
-        if event.src_path == "./samplefile.txt" :
-            stringVar.set(event.src_path)
+        e = event.src_path.split("/")[-1]
+        if e == "samplefile.txt" :
+            print(e)
         else :
-            print(event.src_path)
-            print("Kya bhai, kya change krr diya")
+            print("UnexpectedFile")
 
 def myThread():
     event_handler = MyHandler()

@@ -13,7 +13,8 @@ observer = None
 stringVar = None
 run = True
 cols = [i for i in range(27)]
-df = pd.read_csv('./0809AUTOTRD.txt' , names = cols)
+filename = "0809AUTOTRD.txt"
+df = pd.read_csv( "./"+filename , names = cols)
 users = [i for i in df[17].unique()]
 remUsers = []
 data = dict()
@@ -23,14 +24,20 @@ temp2 = dict()
 idx = 0
 
 class MyHandler(FileSystemEventHandler):
+    def __init__(self , tree):
+        self.tree = tree
     def on_modified(self, event):
-        if event.src_path == "./samplefile.txt" :
-            stringVar.set(event.src_path)
+        e = event.src_path.split('/')[-1]
+        if e == filename :
+            global df
+            cols = [i for i in range(27)]
+            df = pd.read_csv('./0809AUTOTRD.txt' , names = cols)
+            updateTree(self.tree)
         else :
-            print(event.src_path)
+            pass
 
-def myThread():
-    event_handler = MyHandler()
+def myThread(tree):
+    event_handler = MyHandler(tree)
     observer = Observer()
     observer.schedule(event_handler, path='./', recursive=True)
     observer.start()
@@ -81,6 +88,7 @@ def updateTree(tree):
         tree.delete(child)
 
     global idx
+    price.clear() , data.clear() , temp.clear() ,temp2.clear()
     for user in remUsers:
         df1 = df[df[17]==user]
         contracts = [i for i in df1[7].unique()]
@@ -104,7 +112,7 @@ def updateTree(tree):
 
     for user in remUsers:
         for cont in data[user]:
-            if data[user][cont] >0:
+            if data[user][cont] != 0:
                 p =  price[user][cont]
                 q = data[user][cont]
                 tree.insert(parent="" ,index=idx , values=(user , cont , q ,p ,q*p ))
@@ -191,6 +199,9 @@ class RootFrames(Frame):
         self.notebook.add(self.general_tab , text='General')
         self.notebook.add(self.display_tab , text='Watch')
 
+        t = Thread(target=myThread , args=[self.DataGrid])
+        t.start()
+
         # self.url = "ws://122.160.79.135:10771/Broadcast"
         # global client 
         # global sessionID
@@ -210,8 +221,6 @@ class App(Tk):
         titleImage = PhotoImage(file = '../Data/CodeSurelogo.png')
         self.iconphoto(True , titleImage)
         self.protocol("WM_DELETE_WINDOW" , self.onDelete)
-        t = Thread(target=myThread)
-        t.start()
     
     def onDelete(self ):
         if askokcancel("Quit" , "Are you sure you want to exit !!"):    
