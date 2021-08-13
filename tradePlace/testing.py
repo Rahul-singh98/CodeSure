@@ -1,11 +1,12 @@
 from tkinter import *
 from tkinter.ttk import *
 from tkinter.messagebox import *
+import tkinter as tk
 import tkinter.font as tkFont
 from math import *
 import random
 import time
-# from threading import Thread
+from threading import Thread
 
 # view = dict()
 
@@ -98,7 +99,8 @@ import time
 #         t = Thread(target=myFunc ,args=[self.tree])
 #         t.start()
 
-#         self.tree.bind("<Button-3>" , self.showEntry)
+#         self.btnn = Button(parent , text='MyUniqueButton')
+#         self.btnn.pack(side='right')
 
 #     def showEntry(self , event):
 #         self.entryData = StringVar()
@@ -167,24 +169,145 @@ import time
 #         super().__init__()
 #         self.title("Testing ... ")
 #         self.geometry('1200x500')
+#     #     self.protocol('WM_DELETE_WINDOW' , self.onClose)
+
+#     # def onClose(self):
+#     #     if askokcancel("Quit" , "Are you sure you want to exit"):
+#     #         global run 
+#     #         run = False
+#     #         self.destroy()
       
 # if __name__ == "__main__":
 #     app = App()
 #     rootFrame(app)
 #     app.mainloop()
 
+# root = Tk()
+
+# f = Frame(root)
+# f.pack()
+
+# frame = Canvas(f)
+# frame.pack()
+
+# entries = []
+# vars = []
+# vars[0] =[]
+# vars[1]=[]
+# counter = 0
+
+# xscroll= Scrollbar(f , orient='horizontal' , command=frame.xview)
+# xscroll.pack(side='bottom' , fill=X)
+
+# yscroll = Scrollbar(f , orient='vertical' , command=frame.yview)
+# yscroll.pack(side='right' , fill=Y)
+# w = 9
+# options = {'padx':0 , "pady":0}
+
+# def callback(var , i , j):
+#     global vars
+#     spl = [i for i in var.get()]
+    
+#     if len(spl)==0:
+#         print("#")
+#     elif spl[0]=='=':
+#         spl = spl[1:]
+#         string = ''
+#         for i in spl:
+#             string+= i
+#         try :
+
+#             print(eval(string))
+#         except:
+#             pass
+#     else :
+#         print('#')
+
+# def addColumn():
+#     global counter , i , j , w
+#     j += 1
+#     lbl = Label(frame , text=f'Heading {j+1}' , width=w)
+#     lbl.grid(row=0 , column=j ,**options)
+#     for k in range(i+1):
+#         vars[counter][0].trace("w" , lambda name , index , mode , var=vars[counter][0] ,c=counter : callback(var  , c))
+#         entries[counter] = Entry(frame , width=w , textvariable=vars[counter])
+#         entries[counter].grid(row=k+1 , column=j , **options)
+#         counter+=1
+
+# for j in range(16):
+#     lbl = Label(frame , text=f'heading {j+1}' , width=w)
+#     lbl.grid(row=0 , column=j , **options)
+
+# for i in range(20):
+#     for j in range(16):
+#         vars.append(StringVar())
+#         vars[0].append(StringVar())
+#         vars[1].append("")
+#         vars[counter][0].trace("w" , lambda name , index , mode , var=vars[counter][0] ,i=i ,j=j : callback(var  , i,j))
+#         entries[counter] = tk.Entry(frame  , width=w , textvariable=vars[counter][0] , borderwidth=0)
+#         entries[counter].grid(row=i+1 , column=j , **options)
+#         counter +=1
+
+# btn = Button(frame , text='Add Column' , command=addColumn)
+# btn.grid(row= i+3 , column=j+3 )
+
+# root.mainloop()
+
 root = Tk()
 
-frame = Frame(root)
-frame.pack()
-for i in range(20):
-    for j in range(15):
-        lbl = Entry(frame  , width=10 )
-        lbl.insert(END , f'{i}*{j}')
-        lbl.grid(row=i , column=j)
+headers = ['A' , 'B' ,'C' , 'D' , 'E']
+r , c = 0, 0 # initial rows and columns
 
-ent = frame.children["!entry250"]
-ent.delete(0,END)
-ent.insert(END , 'newText')
+entryGrid = []
+entryVars = []
+
+def varCallback(var , c ,r):
+    global entryVars
+    spl = [i for i in var.get()]
+    if len(spl)==0:
+        pass
+    elif spl[0]=='=':
+        spl = spl[1:]
+        string = ''
+        for i in spl:
+            string+= i
+        try :
+            entryVars[c]['old'][r] = entryVars[c]['new'][r].get()
+            entryVars[c]['new'][r].set(eval(string))
+        except Exception as e:
+            print(e)
+
+f = Frame(root)
+f.pack()
+
+canvas = Canvas(f, width=100 , height=100)
+canvas.pack()
+
+
+def create_grid(rows=10 , columns=5):
+    global r , c,headers , entryGrid , entryVars
+    for i in range(columns):
+        grid = [None]
+        vars = {"new":[None] , 'old':[None]}
+        for j in range(rows+1):
+            if j==0:
+                lbl = Label(canvas , text=headers[i])
+                lbl.grid(row=j , column=i)
+            else :
+                vars['new'].append(StringVar())
+                vars['old'].append("")
+                # vars['new'][j].trace('w' , lambda name , index ,mode , var= vars['new'][j] , i=i, j=j: varCallback(var , i ,j))
+                grid.append(Entry(canvas ,textvariable=vars['new'][j]))
+                grid[j].bind("<Return>" ,lambda event  , var=vars['new'][j] , i=i , j=j: varCallback( var , i , j))
+                grid[j].grid(row=j , column=i)
+        # print(vars)
+
+        entryGrid.append(grid)
+        entryVars.append(vars)
+
+    r = j+1
+    c= i+1
+
+create_grid()
 
 root.mainloop()
