@@ -4,6 +4,8 @@ import pandas as pd
 from random import randrange
 
 PADDING = dict(padx=0, pady=0)
+df = pd.DataFrame(columns=['One' , 'Two' , 'Three' ,'Four'])
+
 class GridView(tk.Frame):
     def __init__(self, master=None, **kwargs):
         tk.Frame.__init__(self, master, **kwargs)
@@ -44,15 +46,28 @@ class GridView(tk.Frame):
 class GUI(tk.Frame):
     def __init__(self, master=None, **kwargs):
         tk.Frame.__init__(self, master, **kwargs)
+        global df
         self.table = GridView(self)
         self.table.pack()
-        btn = ttk.Button(self, text="populate", command=self.populate)
+        self.table.set(df)
+        btn = ttk.Button(self, text="Add Row", command=self.populate)
+        btn.pack()
+        btn = ttk.Button(self, text="Add Column", command=self.column)
         btn.pack()
         btn = ttk.Button(self, text="clear", command=self.table.clear)
         btn.pack()
+        self.idx=0
 
     def populate(self):
-        self.table.set(new_rand_df())
+        global df
+        df.loc[len(df.index)] = [randrange(100) for _ in range(len(df.columns))]
+        self.table.set(df)
+
+    def column(self):
+        global df
+        df[f'{self.idx}'] = 0
+        self.table.set(df)
+        self.idx+=1
 
 def main():
     root = tk.Tk()

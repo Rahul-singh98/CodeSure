@@ -1,4 +1,5 @@
 from tkinter import *
+from tkinter import ttk
 from tkinter.ttk import *
 from tkinter.messagebox import *
 import tkinter as tk
@@ -9,7 +10,45 @@ import time
 import pandas as pd
 from threading import Thread
 
-df = pd.DataFrame()
+df = pd.DataFrame(columns=['Open' ,'High', 'Low' , 'Close'])
+
+PADDING = dict(padx=0, pady=0)
+class GridView(Frame):
+    def __init__(self, master=None, **kwargs):
+        Frame.__init__(self, master, **kwargs)
+        self.labels = []
+        style = ttk.Style()
+        style.configure("red.TLabel", background='red')
+        style.configure("green.TLabel", background='green')
+        style.configure("header.TLabel", font = '-weight bold')
+
+    def set(self, df):
+        self.clear()
+        for col, name in enumerate(df.columns):
+            lbl = ttk.Label(self, text=name, style='header.TLabel')
+            lbl.grid(row=0, column=col, **PADDING)
+            self.labels.append(lbl)
+
+        for row, values in enumerate(df.itertuples(), 1):
+            for col, value in enumerate(values[1:]):
+                lbl = ttk.Entry(self, style=self.get_style(value))
+                lbl.insert(tk.END, value)
+                lbl.grid(row=row, column=col, **PADDING)
+                self.labels.append(lbl)
+
+    @staticmethod
+    def get_style(value):
+        if value > 70:
+            return "red.TLabel"
+        elif value < 30:
+            return "green.TLabel"
+        else:
+            return None
+
+    def clear(self):
+        for lbl in self.labels:
+            lbl.grid_forget()
+        self.labels = []
 
 def myFunc(tree):
     for i in range(20):
@@ -22,86 +61,12 @@ def myFunc(tree):
 
 
 class rootFrame(Frame):
-    def __init__(self , parent):
-        super().__init__()
-        
-        self.tree = Treeview(parent)
-        self.carryOn = True
-        self.tree["col"] = ("Name" ,"Open", "High", "Low" ,"Close")
-
-        self.tree.column("#0",   width=40, stretch="no" , anchor='center')
-        self.tree.column("Name", width=100, anchor='center')
-        self.tree.column("Open", width=100, anchor='center')
-        self.tree.column("High", width=100, anchor='center')
-        self.tree.column("Low",  width=100, anchor='center')
-        self.tree.column("Close",  width=100, anchor='center')
-        self.xscroll = Scrollbar(parent ,orient='horizontal' , command=self.tree.xview)
-        self.yscroll = Scrollbar(parent ,orient='vertical', command=self.tree.yview)
-        self.xscroll.pack(side='bottom' , fill='x')
-        self.yscroll.pack(side='right' , fill='y')
-
-        self.tree.heading("#0",   text="0")
-        self.tree.heading("Name",   text="Name")
-        self.tree.heading("Open", text="Open")
-        self.tree.heading("High", text="High")
-        self.tree.heading("Low",  text="Low")
-        self.tree.heading("Close",  text="Close")
-
-        self.tree.insert("","end",iid = "A", text = "A",
-                         values = ("Nifty", 10 , 13 , 6 , 9))
-        view.update({"A":("Nifty", 10 , 13 , 6 , 9)})                        
-        self.tree.insert("","end",iid = "B", text = "B" ,
-                         values = ("BankNifty",15 , 16, 6, 62))
-
-        view.update({"B":("BankNifty",15 , 16, 6, 62)})
-        self.tree.insert("","end",iid = "C", text = "C",
-                         values = ("FinNifty",16 , 25 ,9 , 12))
-        
-        view.update({'C':("FinNifty",16 , 25 ,9 , 12)})
-        self.tree.insert("","end",iid = "D", text = "D",
-                         values = ("Axis",10 , 13 , 6 , 9))
-
-        view.update({'D':("Axis",10 , 13 , 6 , 9)})
-        self.tree.insert("","end",iid = "E", text = "E" ,
-                         values = ("BankOfBaroda",15 , 16, 6, 62))
-
-        view.update({"E":("BankOfBaroda",15 , 16, 6, 62)})
-        self.tree.insert("","end",iid = "F", text = "F",
-                         values = ("IndusIndBank",16 , 25 ,9 , 12))
-
-        view.update({"F":("IndusIndBank",16 , 25 ,9 , 12)})
-        self.tree.insert("","end",iid = "G", text = "G",
-                         values = ("SBI",10 , 13 , 6 , 9))
-
-        view.update({"G":("SBI",10 , 13 , 6 , 9)})
-        self.tree.insert("","end", iid = "H",text = "H" ,
-                         values = ("Zomato",15 , 16, 6, 62))
-
-        view.update({"H":("Zomato",15 , 16, 6 , 62)})
-        self.tree.insert("","end",iid = "I", text = "I",
-                         values = ("AdaniPort",16 , 25 ,9 , 12))
-
-        view.update({"I":("AdaniPort",16 , 25 ,9 , 12)})
-        self.tree.insert("","end", iid = "J",text = "J",
-                         values = ("MindTree",10 , 13 , 6 , 9))
-
-        view.update({"J":("MindTree",10 , 13 , 6 , 9)})
-        self.tree.insert("","end", iid = 'K',text = "K" ,
-                         values = ("PNB",15 , 16, 6, 62))
-
-        view.update({'K':("PNB",15 , 16, 6, 62)})
-        self.tree.insert("","end",iid = 'L', text = "L",
-                         values = ("DLF",16 , 25 ,9 , 12))
-
-        view.update({'L':("DLF",16 , 25 ,9 , 12)})
-        self.tree.pack(fill="both" , expand=True)
-        print(view)
-
-        t = Thread(target=myFunc ,args=[self.tree])
-        t.start()
-
-        self.btnn = Button(parent , text='MyUniqueButton')
-        self.btnn.pack(side='right')
+    def __init__(self , parent=None , **kwargs):
+        Frame.__init__(self , parent , **kwargs)
+        global df
+        self.tree = GridView(self)
+        self.tree.pack()
+        self.tree.set(df)
 
     def showEntry(self , event):
         self.entryData = StringVar()
