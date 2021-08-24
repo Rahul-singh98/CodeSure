@@ -102,4 +102,4 @@ namespace spreadsheet {
         boost::optional<T> mValue;
     };
     
-} // ns spreadsheet
+} 

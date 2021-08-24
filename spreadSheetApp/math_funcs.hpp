@@ -87,4 +87,4 @@ LAZY_FUNC1(TANH,  DOUBLE_TO_DOUBLE_FUNC<std::tanh >);
 
 #undef LAZY_FUNC1
 
-} // ns spreadsheet
+}

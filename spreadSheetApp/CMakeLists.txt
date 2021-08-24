@@ -3,8 +3,8 @@ project(spreadsheet) # Project name and can also specify version example # proje
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11") # specifing the cpp standard
 
-set(BOOST_ROOT "./boost_1_77_0") # path where boost is installed
-set(BOOSTROOT "./boost_1_77_0")  # path where boost is installed
+set(BOOST_ROOT "../../impFiles/boost_1_77_0") # path where boost is installed
+set(BOOSTROOT "../../impFiles/boost_1_77_0")  # path where boost is installed
 
 find_package(Boost 1.77.0) # find boost package
 
@@ -14,7 +14,7 @@ endif()
 
 # if found do this
 include_directories(${Boost_INCLUDE_DIRS})
-include_directories("../streamulus/src")
+include_directories("../../impFiles/streamulus")
 include_directories(".")
 
 add_definitions(-DUSE_MAIN)
