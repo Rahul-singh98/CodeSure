@@ -1,0 +1,14 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/rahul/Desktop/CodeSure/spreadSheetApp/main.cpp
+spreadsheet.hpp
+/home/rahul/Desktop/CodeSure/spreadSheetApp/spreadsheet.hpp
+iostream
+-
+
